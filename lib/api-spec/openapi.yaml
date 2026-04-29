@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: True Echo VR Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: customers
+    description: Customer management (TEVR admin)
+  - name: headsets
+    description: Headset management
+  - name: sessions
+    description: Streaming session management
+  - name: messages
+    description: Session messaging
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List all customers
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerBody"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get a customer by ID
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /headsets:
+    get:
+      operationId: listHeadsets
+      tags: [headsets]
+      summary: List available headsets
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [online, offline, busy]
+      responses:
+        "200":
+          description: List of headsets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Headset"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List active streaming sessions
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new streaming session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionBody"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get session by ID
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+    delete:
+      operationId: endSession
+      tags: [sessions]
+      summary: End a streaming session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{sessionId}/messages:
+    get:
+      operationId: listMessages
+      tags: [messages]
+      summary: Get messages for a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [messages]
+      summary: Send a message in a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [customers]
+      summary: Get TEVR dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +237,144 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        contactEmail:
+          type: string
+        programVersion:
+          type: string
+        headsetCount:
+          type: integer
+        activeHeadsets:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, trial]
+        createdAt:
+          type: string
+      required: [id, name, contactEmail, programVersion, headsetCount, activeHeadsets, status, createdAt]
+
+    CreateCustomerBody:
+      type: object
+      properties:
+        name:
+          type: string
+        contactEmail:
+          type: string
+        programVersion:
+          type: string
+      required: [name, contactEmail, programVersion]
+
+    Headset:
+      type: object
+      properties:
+        id:
+          type: string
+        serialNumber:
+          type: string
+        label:
+          type: string
+        customerId:
+          type: string
+        customerName:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, busy]
+        batteryLevel:
+          type: integer
+        firmwareVersion:
+          type: string
+        lastSeen:
+          type: string
+      required: [id, serialNumber, label, customerId, customerName, status, batteryLevel, firmwareVersion, lastSeen]
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        headsetId:
+          type: string
+        headsetLabel:
+          type: string
+        adminRole:
+          type: string
+        techRole:
+          type: string
+        status:
+          type: string
+          enum: [waiting, active, ended]
+        roomCode:
+          type: string
+        startedAt:
+          type: string
+        endedAt:
+          type: string
+      required: [id, headsetId, headsetLabel, status, roomCode, startedAt]
+
+    CreateSessionBody:
+      type: object
+      properties:
+        headsetId:
+          type: string
+        role:
+          type: string
+          enum: [admin, tech]
+      required: [headsetId, role]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        senderRole:
+          type: string
+          enum: [admin, tech]
+        content:
+          type: string
+        sentAt:
+          type: string
+      required: [id, sessionId, senderRole, content, sentAt]
+
+    SendMessageBody:
+      type: object
+      properties:
+        senderRole:
+          type: string
+          enum: [admin, tech]
+        content:
+          type: string
+      required: [senderRole, content]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalCustomers:
+          type: integer
+        totalHeadsets:
+          type: integer
+        activeHeadsets:
+          type: integer
+        activeSessions:
+          type: integer
+        customersByStatus:
+          type: object
+          properties:
+            active:
+              type: integer
+            inactive:
+              type: integer
+            trial:
+              type: integer
+          required: [active, inactive, trial]
+      required: [totalCustomers, totalHeadsets, activeHeadsets, activeSessions, customersByStatus]

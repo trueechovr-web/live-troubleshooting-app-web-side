@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "True Echo VR Platform"
+version = "1.0.0"
+id = "artifacts/tevr-platform"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24459
+
+[services.development]
+run = "pnpm --filter @workspace/tevr-platform run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tevr-platform", "run", "build" ]
+publicDir = "artifacts/tevr-platform/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24459"
+BASE_PATH = "/"
