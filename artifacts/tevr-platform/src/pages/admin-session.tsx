@@ -65,6 +65,12 @@ export default function AdminSession() {
     setTimeout(() => setPointToConfirm(""), 3000);
   }, [sendPointTo]);
 
+  const handleClearPointTo = useCallback(() => {
+    setPointingTo("");
+    sendPointTo("");
+    setPointToConfirm("");
+  }, [sendPointTo]);
+
   const handleEndSession = useCallback(() => {
     endSession.mutate({ sessionId }, { onSuccess: () => setLocation("/admin/troubleshoot") });
   }, [sessionId, endSession, setLocation]);
@@ -137,15 +143,15 @@ export default function AdminSession() {
             )}
           </div>
 
-          <div className="border-t border-border bg-card px-6 py-3 flex items-center gap-4 shrink-0 flex-wrap">
+          <div className="border-t border-border bg-card px-8 py-5 flex items-center gap-6 shrink-0 flex-wrap">
             <button
               data-testid="toggle-mic"
               onClick={toggleMic}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-base font-medium transition-colors ${
                 isMicOn ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 {isMicOn ? (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                 ) : (
@@ -161,18 +167,18 @@ export default function AdminSession() {
             <button
               data-testid="toggle-camera"
               onClick={toggleCamera}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-base font-medium transition-colors ${
                 isCameraOn ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
               </svg>
               {isCameraOn ? "Camera on" : "Camera off"}
             </button>
 
-            <div className="flex items-center gap-2 max-w-40">
-              <svg width="14" height="14" className="text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex items-center gap-3 max-w-56">
+              <svg width="18" height="18" className="text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
               </svg>
               <input
@@ -180,25 +186,41 @@ export default function AdminSession() {
                 data-testid="volume-slider"
                 min={0} max={100} value={volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="flex-1 accent-primary h-1.5"
+                className="flex-1 accent-primary h-2"
               />
-              <span className="text-xs text-muted-foreground w-8 tabular-nums">{volume}%</span>
+              <span className="text-sm text-muted-foreground w-10 tabular-nums">{volume}%</span>
             </div>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <select
-                data-testid="point-to-select"
-                value={pointingTo}
-                onChange={(e) => handlePointTo(e.target.value)}
-                className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Point to object…</option>
-                {POINT_TO_OBJECTS.map((obj) => (
-                  <option key={obj} value={obj}>{obj}</option>
-                ))}
-              </select>
-              {pointToConfirm && (
-                <span className="text-xs text-primary font-medium">{pointToConfirm}</span>
+            <div className="flex items-center gap-3 ml-auto">
+              {pointingTo ? (
+                <button
+                  data-testid="point-to-clear"
+                  onClick={handleClearPointTo}
+                  className="flex items-center gap-2.5 bg-primary text-primary-foreground border border-primary rounded-lg px-5 py-3 text-base font-medium hover:opacity-90 transition-opacity"
+                >
+                  <span>Pointing to: {pointingTo}</span>
+                  <span className="inline-flex items-center gap-1.5 pl-3 ml-1 border-l border-primary-foreground/30">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear
+                  </span>
+                </button>
+              ) : (
+                <select
+                  data-testid="point-to-select"
+                  value={pointingTo}
+                  onChange={(e) => handlePointTo(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-5 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Point to object…</option>
+                  {POINT_TO_OBJECTS.map((obj) => (
+                    <option key={obj} value={obj}>{obj}</option>
+                  ))}
+                </select>
+              )}
+              {pointToConfirm && !pointingTo && (
+                <span className="text-sm text-primary font-medium">{pointToConfirm}</span>
               )}
             </div>
           </div>
