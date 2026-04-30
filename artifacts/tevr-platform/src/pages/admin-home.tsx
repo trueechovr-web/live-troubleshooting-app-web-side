@@ -60,7 +60,7 @@ export default function AdminHome() {
 
       <div className="px-6 py-8 max-w-4xl mx-auto">
         <div className="mb-8">
-          <p className="text-sm text-primary font-medium mb-1">Meridian Manufacturing</p>
+          <p className="text-sm text-primary font-medium mb-1">Octane Coffee</p>
           <h1 className="text-xl font-semibold text-foreground mb-1">Admin Portal</h1>
           <p className="text-muted-foreground text-sm">Select an action to get started</p>
         </div>

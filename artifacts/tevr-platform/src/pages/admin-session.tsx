@@ -18,6 +18,7 @@ export default function AdminSession() {
   const [volume, setVolume] = useState(80);
   const [pointingTo, setPointingTo] = useState("");
   const [pointToConfirm, setPointToConfirm] = useState("");
+  const [pointToPanelOpen, setPointToPanelOpen] = useState(false);
 
   const session    = useGetSession(sessionId, { query: { enabled: !!sessionId } });
   const customers  = useListCustomers();
@@ -51,6 +52,7 @@ export default function AdminSession() {
 
   const handlePointTo = useCallback((obj: string) => {
     setPointingTo(obj);
+    setPointToPanelOpen(false);
     sendPointTo(obj);
     setPointToConfirm(`Pointing to: ${obj}`);
     setTimeout(() => setPointToConfirm(""), 3000);
@@ -111,7 +113,7 @@ export default function AdminSession() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden relative">
           <div className="relative flex-1 bg-black flex items-center justify-center min-h-0">
             <video ref={remoteVideoRef} data-testid="remote-video" autoPlay playsInline muted={false} className="w-full h-full object-contain" />
             {!isConnected && (
@@ -133,6 +135,71 @@ export default function AdminSession() {
               </div>
             )}
           </div>
+
+          {/* Point-to picker panel — slides up over the video */}
+          {pointToPanelOpen && (
+            <div
+              data-testid="point-to-panel"
+              className="absolute bottom-0 left-0 right-0 z-20 bg-card border-t border-border shadow-2xl"
+            >
+              <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+                <span className="text-sm font-semibold text-foreground">Point to object</span>
+                <button
+                  data-testid="point-to-panel-close"
+                  onClick={() => setPointToPanelOpen(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-4 max-h-72 overflow-y-auto">
+                {pointToObjects.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No objects configured.</p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {pointToObjects.map((item, idx) =>
+                      item.children && item.children.length > 0 ? (
+                        <div key={idx}>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{item.label}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.children.map((child, ci) => (
+                              <button
+                                key={ci}
+                                data-testid={`point-to-option-${idx}-${ci}`}
+                                onClick={() => handlePointTo(child.label)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                                  pointingTo === child.label
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background border-border text-foreground hover:bg-muted"
+                                }`}
+                              >
+                                {child.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          key={idx}
+                          data-testid={`point-to-option-${idx}`}
+                          onClick={() => handlePointTo(item.label)}
+                          className={`self-start px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                            pointingTo === item.label
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background border-border text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-border bg-card px-8 py-5 flex items-center gap-6 shrink-0 flex-wrap">
             <button
@@ -198,25 +265,23 @@ export default function AdminSession() {
                   </span>
                 </button>
               ) : (
-                <select
-                  data-testid="point-to-select"
-                  value={pointingTo}
-                  onChange={(e) => handlePointTo(e.target.value)}
-                  className="bg-background border border-border rounded-lg px-5 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                <button
+                  data-testid="point-to-open"
+                  onClick={() => setPointToPanelOpen((v) => !v)}
+                  className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-base font-medium border transition-colors ${
+                    pointToPanelOpen
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border text-foreground hover:bg-muted"
+                  }`}
                 >
-                  <option value="">Point to object…</option>
-                  {pointToObjects.map((item, idx) =>
-                    item.children && item.children.length > 0 ? (
-                      <optgroup key={`group-${idx}`} label={item.label || "Submenu"}>
-                        {item.children.map((child, ci) => (
-                          <option key={`${idx}-${ci}`} value={child.label}>{child.label}</option>
-                        ))}
-                      </optgroup>
-                    ) : (
-                      <option key={`item-${idx}`} value={item.label}>{item.label}</option>
-                    ),
-                  )}
-                </select>
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 6.927-3.286-.682zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+                  </svg>
+                  Point to object…
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className={`transition-transform ${pointToPanelOpen ? "rotate-180" : ""}`}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                  </svg>
+                </button>
               )}
               {pointToConfirm && !pointingTo && (
                 <span className="text-sm text-primary font-medium">{pointToConfirm}</span>
