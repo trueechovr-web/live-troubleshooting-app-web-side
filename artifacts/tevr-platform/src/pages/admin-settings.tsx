@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   useListCustomers,
@@ -20,6 +20,14 @@ export default function AdminSettings() {
   const [items, setItems] = useState<PointToItem[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const dragChild = useRef<{ parent: number; idx: number } | null>(null);
+  const dragOverChild = useRef<number | null>(null);
+  const [dragOverChildState, setDragOverChildState] = useState<{ parent: number; idx: number } | null>(null);
 
   useEffect(() => {
     if (customer && !dirty) {
@@ -51,11 +59,11 @@ export default function AdminSettings() {
   };
 
   const handleAddItem = () => {
-    updateItems([...items, { label: "" }]);
+    updateItems([{ label: "" }, ...items]);
   };
 
   const handleAddSubmenu = () => {
-    updateItems([...items, { label: "", children: [{ label: "" }] }]);
+    updateItems([{ label: "", children: [{ label: "" }] }, ...items]);
   };
 
   const handleRenameItem = (idx: number, label: string) => {
@@ -120,6 +128,58 @@ export default function AdminSettings() {
           : it,
       ),
     );
+  };
+
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+  };
+
+  const handleDragEnter = (idx: number) => {
+    dragOverItem.current = idx;
+    setDragOverIdx(idx);
+  };
+
+  const handleDragEnd = () => {
+    setDragOverIdx(null);
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    if (dragItem.current === dragOverItem.current) {
+      dragItem.current = null;
+      dragOverItem.current = null;
+      return;
+    }
+    const next = [...items];
+    const [removed] = next.splice(dragItem.current, 1);
+    next.splice(dragOverItem.current, 0, removed);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    updateItems(next);
+  };
+
+  const handleChildDragStart = (parent: number, idx: number) => {
+    dragChild.current = { parent, idx };
+  };
+
+  const handleChildDragEnter = (parent: number, idx: number) => {
+    dragOverChild.current = idx;
+    setDragOverChildState({ parent, idx });
+  };
+
+  const handleChildDragEnd = (parent: number) => {
+    setDragOverChildState(null);
+    if (!dragChild.current || dragOverChild.current === null) return;
+    if (dragChild.current.parent !== parent || dragChild.current.idx === dragOverChild.current) {
+      dragChild.current = null;
+      dragOverChild.current = null;
+      return;
+    }
+    const next = [...items];
+    const children = [...(next[parent].children ?? [])];
+    const [removed] = children.splice(dragChild.current.idx, 1);
+    children.splice(dragOverChild.current, 0, removed);
+    next[parent] = { ...next[parent], children };
+    dragChild.current = null;
+    dragOverChild.current = null;
+    updateItems(next);
   };
 
   const handleSave = () => {
@@ -250,13 +310,28 @@ export default function AdminSettings() {
                 <ul className="flex flex-col gap-3">
                   {items.map((item, idx) => {
                     const isSubmenu = item.children !== undefined;
+                    const isDragTarget = dragOverIdx === idx && dragItem.current !== idx;
                     return (
                       <li
                         key={idx}
                         data-testid={`item-${idx}`}
-                        className="rounded-lg border border-border bg-background p-3"
+                        draggable
+                        onDragStart={() => handleDragStart(idx)}
+                        onDragEnter={() => handleDragEnter(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDragEnd={handleDragEnd}
+                        className={`rounded-lg border bg-background p-3 transition-all cursor-grab active:cursor-grabbing ${
+                          isDragTarget
+                            ? "border-primary ring-1 ring-primary/30 scale-[1.01]"
+                            : "border-border"
+                        }`}
                       >
                         <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing shrink-0 px-0.5" title="Drag to reorder">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8.5 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                            </svg>
+                          </span>
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded shrink-0 ${
                               isSubmenu
@@ -307,32 +382,50 @@ export default function AdminSettings() {
 
                         {isSubmenu && (
                           <ul className="mt-3 ml-8 flex flex-col gap-2 border-l-2 border-border pl-4">
-                            {(item.children ?? []).map((child, ci) => (
-                              <li
-                                key={ci}
-                                data-testid={`item-${idx}-child-${ci}`}
-                                className="flex items-center gap-2"
-                              >
-                                <input
-                                  type="text"
-                                  data-testid={`item-${idx}-child-${ci}-label`}
-                                  value={child.label}
-                                  placeholder="Child object"
-                                  onChange={(e) => handleRenameChild(idx, ci, e.target.value)}
-                                  className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                <button
-                                  data-testid={`item-${idx}-child-${ci}-delete`}
-                                  onClick={() => handleDeleteChild(idx, ci)}
-                                  className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                  title="Delete"
+                            {(item.children ?? []).map((child, ci) => {
+                              const isChildTarget =
+                                dragOverChildState?.parent === idx &&
+                                dragOverChildState?.idx === ci &&
+                                dragChild.current?.idx !== ci;
+                              return (
+                                <li
+                                  key={ci}
+                                  data-testid={`item-${idx}-child-${ci}`}
+                                  draggable
+                                  onDragStart={(e) => { e.stopPropagation(); handleChildDragStart(idx, ci); }}
+                                  onDragEnter={(e) => { e.stopPropagation(); handleChildDragEnter(idx, ci); }}
+                                  onDragOver={(e) => e.preventDefault()}
+                                  onDragEnd={(e) => { e.stopPropagation(); handleChildDragEnd(idx); }}
+                                  className={`flex items-center gap-2 rounded-md p-1 transition-all cursor-grab active:cursor-grabbing ${
+                                    isChildTarget ? "ring-1 ring-primary/40 bg-primary/5" : ""
+                                  }`}
                                 >
-                                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </li>
-                            ))}
+                                  <span className="text-muted-foreground/40 hover:text-muted-foreground shrink-0 px-0.5" title="Drag to reorder">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8.5 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                    </svg>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    data-testid={`item-${idx}-child-${ci}-label`}
+                                    value={child.label}
+                                    placeholder="Child object"
+                                    onChange={(e) => handleRenameChild(idx, ci, e.target.value)}
+                                    className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                  />
+                                  <button
+                                    data-testid={`item-${idx}-child-${ci}-delete`}
+                                    onClick={() => handleDeleteChild(idx, ci)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                    title="Delete"
+                                  >
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </li>
+                              );
+                            })}
                             <button
                               data-testid={`item-${idx}-add-child`}
                               onClick={() => handleAddChild(idx)}
