@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum, jsonb, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb, doublePrecision, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -113,13 +113,17 @@ export type InsertQrCode = z.infer<typeof insertQrCodeSchema>;
 export type QrCode = typeof qrCodesTable.$inferSelect;
 
 /* ── QR Dictionary (company-wide name mapping) ── */
-export const qrDictionaryTable = pgTable("qr_dictionary", {
-  id: text("id").primaryKey(),
-  customerId: text("customer_id").notNull().references(() => customersTable.id),
-  qrValue: text("qr_value").notNull(),
-  name: text("name").notNull(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const qrDictionaryTable = pgTable(
+  "qr_dictionary",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id").notNull().references(() => customersTable.id),
+    qrValue: text("qr_value").notNull(),
+    name: text("name").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("qr_dictionary_customer_qrvalue_idx").on(t.customerId, t.qrValue)],
+);
 
 export const insertQrDictionarySchema = createInsertSchema(qrDictionaryTable).omit({ updatedAt: true });
 export type InsertQrDictionary = z.infer<typeof insertQrDictionarySchema>;

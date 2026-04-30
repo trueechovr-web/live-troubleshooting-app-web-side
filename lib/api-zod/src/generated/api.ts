@@ -432,13 +432,17 @@ export const GetHeadsetStartupDataResponse = zod.object({
     zod.object({
       qrValue: zod.string(),
       name: zod.string().optional(),
-      posX: zod.number(),
-      posY: zod.number(),
-      posZ: zod.number(),
-      rotX: zod.number(),
-      rotY: zod.number(),
-      rotZ: zod.number(),
-      rotW: zod.number(),
+      position: zod.object({
+        x: zod.number(),
+        y: zod.number(),
+        z: zod.number(),
+      }),
+      rotation: zod.object({
+        x: zod.number(),
+        y: zod.number(),
+        z: zod.number(),
+        w: zod.number(),
+      }),
     }),
   ),
   nameDictionary: zod.array(

@@ -149,13 +149,8 @@ export interface CreateQrDictionaryEntryBody {
 export interface HeadsetStartupQrCode {
   qrValue: string;
   name?: string;
-  posX: number;
-  posY: number;
-  posZ: number;
-  rotX: number;
-  rotY: number;
-  rotZ: number;
-  rotW: number;
+  position: Vec3;
+  rotation: Vec4;
 }
 
 export type HeadsetStartupDataNameDictionaryItem = {

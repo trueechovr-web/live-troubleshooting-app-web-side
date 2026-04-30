@@ -123,8 +123,9 @@ export default function AdminQrDictionary() {
       setDeletedIds([]);
       setDictSaveMsg("Saved");
       setTimeout(() => setDictSaveMsg(""), 2500);
-    } catch {
-      setDictSaveMsg("Failed to save");
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.error ?? err?.message ?? "";
+      setDictSaveMsg(serverMsg.includes("already exists") ? serverMsg : "Failed to save");
     } finally {
       setDictSaving(false);
     }

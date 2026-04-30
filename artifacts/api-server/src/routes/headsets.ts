@@ -59,6 +59,12 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       .where(eq(locationsTable.id, locationId));
     if (!location) { res.status(404).json({ error: "Location not found" }); return; }
 
+    // Enforce customer boundary — headset and location must belong to the same customer
+    if (location.customerId !== headset.customerId) {
+      res.status(403).json({ error: "Location does not belong to the headset's customer" });
+      return;
+    }
+
     const [qrCodes, dictionary] = await Promise.all([
       db.select().from(qrCodesTable).where(eq(qrCodesTable.locationId, locationId)),
       db.select().from(qrDictionaryTable).where(eq(qrDictionaryTable.customerId, headset.customerId)),
@@ -72,13 +78,8 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       qrCodes: qrCodes.map((r) => ({
         qrValue: r.qrValue,
         name: nameMap.get(r.qrValue) ?? null,
-        posX: r.posX,
-        posY: r.posY,
-        posZ: r.posZ,
-        rotX: r.rotX,
-        rotY: r.rotY,
-        rotZ: r.rotZ,
-        rotW: r.rotW,
+        position: { x: r.posX, y: r.posY, z: r.posZ },
+        rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
       })),
       nameDictionary: dictionary.map((d) => ({ qrValue: d.qrValue, name: d.name })),
     });

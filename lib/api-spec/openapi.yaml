@@ -749,21 +749,11 @@ components:
           type: string
         name:
           type: string
-        posX:
-          type: number
-        posY:
-          type: number
-        posZ:
-          type: number
-        rotX:
-          type: number
-        rotY:
-          type: number
-        rotZ:
-          type: number
-        rotW:
-          type: number
-      required: [qrValue, posX, posY, posZ, rotX, rotY, rotZ, rotW]
+        position:
+          $ref: "#/components/schemas/Vec3"
+        rotation:
+          $ref: "#/components/schemas/Vec4"
+      required: [qrValue, position, rotation]
 
     HeadsetStartupData:
       type: object

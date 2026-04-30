@@ -52,7 +52,12 @@ router.post("/customers/:customerId/qr-dictionary", async (req, res) => {
       .returning();
 
     res.status(201).json({ ...entry, updatedAt: entry.updatedAt.toISOString() });
-  } catch {
+  } catch (err: any) {
+    const pgCode = err?.code ?? err?.cause?.code;
+    if (pgCode === "23505" || String(err?.message).includes("duplicate key")) {
+      res.status(409).json({ error: `QR value '${req.body?.qrValue}' already exists for this customer` });
+      return;
+    }
     res.status(500).json({ error: "Failed to create QR dictionary entry" });
   }
 });
@@ -76,7 +81,12 @@ router.put("/customers/:customerId/qr-dictionary/:entryId", async (req, res) => 
 
     if (!entry) { res.status(404).json({ error: "Entry not found" }); return; }
     res.json({ ...entry, updatedAt: entry.updatedAt.toISOString() });
-  } catch {
+  } catch (err: any) {
+    const pgCode = err?.code ?? err?.cause?.code;
+    if (pgCode === "23505" || String(err?.message).includes("duplicate key")) {
+      res.status(409).json({ error: `QR value '${req.body?.qrValue}' already exists for this customer` });
+      return;
+    }
     res.status(500).json({ error: "Failed to update QR dictionary entry" });
   }
 });
