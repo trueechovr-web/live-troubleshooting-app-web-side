@@ -75,12 +75,15 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
     res.json({
       locationId: location.id,
       locationName: location.name,
-      qrCodes: qrCodes.map((r) => ({
-        qrValue: r.qrValue,
-        name: nameMap.get(r.qrValue) ?? null,
-        position: { x: r.posX, y: r.posY, z: r.posZ },
-        rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
-      })),
+      qrCodes: qrCodes.map((r) => {
+        const name = nameMap.get(r.qrValue);
+        return {
+          qrValue: r.qrValue,
+          ...(name != null ? { name } : {}),
+          position: { x: r.posX, y: r.posY, z: r.posZ },
+          rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
+        };
+      }),
       nameDictionary: dictionary.map((d) => ({ qrValue: d.qrValue, name: d.name })),
     });
   } catch (err) {

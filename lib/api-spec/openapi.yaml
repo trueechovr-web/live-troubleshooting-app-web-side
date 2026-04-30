@@ -157,6 +157,34 @@ paths:
                 $ref: "#/components/schemas/LocationSummary"
 
   /customers/{customerId}/locations/{locationId}:
+    put:
+      operationId: updateLocation
+      tags: [locations]
+      summary: Update a location's name
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationBody"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSummary"
     delete:
       operationId: deleteLocation
       tags: [locations]

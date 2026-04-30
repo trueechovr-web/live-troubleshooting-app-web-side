@@ -7,6 +7,16 @@ import { CreateQrDictionaryEntryBody } from "@workspace/api-zod";
 
 const router = Router();
 
+function isDuplicateKeyError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as Record<string, unknown>;
+  const code = typeof e["code"] === "string" ? e["code"]
+    : typeof e["cause"] === "object" && e["cause"] !== null
+      ? (e["cause"] as Record<string, unknown>)["code"]
+      : undefined;
+  return code === "23505" || typeof e["message"] === "string" && e["message"].includes("duplicate key");
+}
+
 /* ── GET /customers/:customerId/qr-dictionary ── */
 router.get("/customers/:customerId/qr-dictionary", async (req, res) => {
   try {
@@ -52,9 +62,8 @@ router.post("/customers/:customerId/qr-dictionary", async (req, res) => {
       .returning();
 
     res.status(201).json({ ...entry, updatedAt: entry.updatedAt.toISOString() });
-  } catch (err: any) {
-    const pgCode = err?.code ?? err?.cause?.code;
-    if (pgCode === "23505" || String(err?.message).includes("duplicate key")) {
+  } catch (err: unknown) {
+    if (isDuplicateKeyError(err)) {
       res.status(409).json({ error: `QR value '${req.body?.qrValue}' already exists for this customer` });
       return;
     }
@@ -81,9 +90,8 @@ router.put("/customers/:customerId/qr-dictionary/:entryId", async (req, res) => 
 
     if (!entry) { res.status(404).json({ error: "Entry not found" }); return; }
     res.json({ ...entry, updatedAt: entry.updatedAt.toISOString() });
-  } catch (err: any) {
-    const pgCode = err?.code ?? err?.cause?.code;
-    if (pgCode === "23505" || String(err?.message).includes("duplicate key")) {
+  } catch (err: unknown) {
+    if (isDuplicateKeyError(err)) {
       res.status(409).json({ error: `QR value '${req.body?.qrValue}' already exists for this customer` });
       return;
     }

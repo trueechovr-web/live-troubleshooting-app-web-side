@@ -636,6 +636,120 @@ export const useCreateLocation = <
 };
 
 /**
+ * @summary Update a location's name
+ */
+export const getUpdateLocationUrl = (
+  customerId: string,
+  locationId: string,
+) => {
+  return `/api/customers/${customerId}/locations/${locationId}`;
+};
+
+export const updateLocation = async (
+  customerId: string,
+  locationId: string,
+  createLocationBody: CreateLocationBody,
+  options?: RequestInit,
+): Promise<LocationSummary> => {
+  return customFetch<LocationSummary>(
+    getUpdateLocationUrl(customerId, locationId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createLocationBody),
+    },
+  );
+};
+
+export const getUpdateLocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLocation>>,
+    TError,
+    {
+      customerId: string;
+      locationId: string;
+      data: BodyType<CreateLocationBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateLocation>>,
+  TError,
+  {
+    customerId: string;
+    locationId: string;
+    data: BodyType<CreateLocationBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateLocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateLocation>>,
+    {
+      customerId: string;
+      locationId: string;
+      data: BodyType<CreateLocationBody>;
+    }
+  > = (props) => {
+    const { customerId, locationId, data } = props ?? {};
+
+    return updateLocation(customerId, locationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateLocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateLocation>>
+>;
+export type UpdateLocationMutationBody = BodyType<CreateLocationBody>;
+export type UpdateLocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a location's name
+ */
+export const useUpdateLocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLocation>>,
+    TError,
+    {
+      customerId: string;
+      locationId: string;
+      data: BodyType<CreateLocationBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateLocation>>,
+  TError,
+  {
+    customerId: string;
+    locationId: string;
+    data: BodyType<CreateLocationBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateLocationMutationOptions(options));
+};
+
+/**
  * @summary Delete a location and all its QR codes
  */
 export const getDeleteLocationUrl = (

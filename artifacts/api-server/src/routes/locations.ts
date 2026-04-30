@@ -93,6 +93,44 @@ router.post("/customers/:customerId/locations", async (req, res) => {
   }
 });
 
+/* ── PUT /customers/:customerId/locations/:locationId ── */
+router.put("/customers/:customerId/locations/:locationId", async (req, res) => {
+  try {
+    const parsed = CreateLocationBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+
+    const [existing] = await db
+      .select()
+      .from(locationsTable)
+      .where(eq(locationsTable.id, req.params.locationId));
+    if (!existing || existing.customerId !== req.params.customerId) {
+      res.status(404).json({ error: "Location not found" });
+      return;
+    }
+
+    const [updated] = await db
+      .update(locationsTable)
+      .set({ name: parsed.data.name })
+      .where(eq(locationsTable.id, req.params.locationId))
+      .returning();
+
+    const stats = await buildLocationSummaries([updated.id]);
+    const s = stats.get(updated.id);
+
+    res.json({
+      id: updated.id,
+      customerId: updated.customerId,
+      name: updated.name,
+      createdAt: updated.createdAt.toISOString(),
+      qrCodeCount: s?.count ?? 0,
+      lastCalibratedAt: s?.lastAt ? s.lastAt.toISOString() : undefined,
+      lastCalibratedByHeadsetId: s?.lastHeadset ?? undefined,
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to update location" });
+  }
+});
+
 /* ── DELETE /customers/:customerId/locations/:locationId ── */
 router.delete("/customers/:customerId/locations/:locationId", async (req, res) => {
   try {
@@ -134,7 +172,20 @@ router.get("/locations/:locationId/qr-codes", async (req, res) => {
     res.json({
       locationId: loc.id,
       locationName: loc.name,
-      qrCodes: qrCodes.map((r) => ({ ...r, calibratedAt: r.calibratedAt.toISOString() })),
+      qrCodes: qrCodes.map((r) => ({
+        id: r.id,
+        locationId: r.locationId,
+        qrValue: r.qrValue,
+        posX: r.posX,
+        posY: r.posY,
+        posZ: r.posZ,
+        rotX: r.rotX,
+        rotY: r.rotY,
+        rotZ: r.rotZ,
+        rotW: r.rotW,
+        calibratedAt: r.calibratedAt.toISOString(),
+        ...(r.headsetId != null ? { headsetId: r.headsetId } : {}),
+      })),
       lastCalibratedAt: latest.at ? latest.at.toISOString() : undefined,
       lastCalibratedByHeadsetId: latest.headset ?? undefined,
     });
@@ -188,7 +239,20 @@ router.put("/locations/:locationId/qr-codes", async (req, res) => {
     res.json({
       locationId: loc.id,
       locationName: loc.name,
-      qrCodes: inserted.map((r) => ({ ...r, calibratedAt: r.calibratedAt.toISOString() })),
+      qrCodes: inserted.map((r) => ({
+        id: r.id,
+        locationId: r.locationId,
+        qrValue: r.qrValue,
+        posX: r.posX,
+        posY: r.posY,
+        posZ: r.posZ,
+        rotX: r.rotX,
+        rotY: r.rotY,
+        rotZ: r.rotZ,
+        rotW: r.rotW,
+        calibratedAt: r.calibratedAt.toISOString(),
+        ...(r.headsetId != null ? { headsetId: r.headsetId } : {}),
+      })),
       lastCalibratedAt: qrCodes.length > 0 ? now.toISOString() : undefined,
       lastCalibratedByHeadsetId: headsetId ?? undefined,
     });

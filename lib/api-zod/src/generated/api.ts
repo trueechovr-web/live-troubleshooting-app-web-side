@@ -223,6 +223,30 @@ export const CreateLocationBody = zod.object({
 });
 
 /**
+ * @summary Update a location's name
+ */
+export const UpdateLocationParams = zod.object({
+  customerId: zod.coerce.string(),
+  locationId: zod.coerce.string(),
+});
+
+export const updateLocationBodyNameMax = 100;
+
+export const UpdateLocationBody = zod.object({
+  name: zod.string().min(1).max(updateLocationBodyNameMax),
+});
+
+export const UpdateLocationResponse = zod.object({
+  id: zod.string(),
+  customerId: zod.string(),
+  name: zod.string(),
+  createdAt: zod.string(),
+  qrCodeCount: zod.number(),
+  lastCalibratedAt: zod.string().optional(),
+  lastCalibratedByHeadsetId: zod.string().optional(),
+});
+
+/**
  * @summary Delete a location and all its QR codes
  */
 export const DeleteLocationParams = zod.object({
