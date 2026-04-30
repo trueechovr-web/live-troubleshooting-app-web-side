@@ -17,15 +17,26 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ClearLocationQrCodes200,
   CreateCustomerBody,
+  CreateLocationBody,
+  CreateQrDictionaryEntryBody,
   CreateSessionBody,
   Customer,
   DashboardSummary,
+  DeleteLocation200,
+  DeleteQrDictionaryEntry200,
+  GetHeadsetStartupDataParams,
   Headset,
+  HeadsetStartupData,
   HealthStatus,
+  ImportQrCodesBody,
   ListHeadsetsParams,
+  LocationQrData,
+  LocationSummary,
   Message,
   PointToObjects,
+  QrDictionaryEntry,
   SendMessageBody,
   Session,
 } from "./api.schemas";
@@ -450,6 +461,921 @@ export const useUpdateCustomerPointToObjects = <
 };
 
 /**
+ * @summary List all locations for a customer
+ */
+export const getListLocationsUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/locations`;
+};
+
+export const listLocations = async (
+  customerId: string,
+  options?: RequestInit,
+): Promise<LocationSummary[]> => {
+  return customFetch<LocationSummary[]>(getListLocationsUrl(customerId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListLocationsQueryKey = (customerId: string) => {
+  return [`/api/customers/${customerId}/locations`] as const;
+};
+
+export const getListLocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLocations>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListLocationsQueryKey(customerId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLocations>>> = ({
+    signal,
+  }) => listLocations(customerId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!customerId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLocations>>
+>;
+export type ListLocationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all locations for a customer
+ */
+
+export function useListLocations<
+  TData = Awaited<ReturnType<typeof listLocations>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLocationsQueryOptions(customerId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new location for a customer
+ */
+export const getCreateLocationUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/locations`;
+};
+
+export const createLocation = async (
+  customerId: string,
+  createLocationBody: CreateLocationBody,
+  options?: RequestInit,
+): Promise<LocationSummary> => {
+  return customFetch<LocationSummary>(getCreateLocationUrl(customerId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLocationBody),
+  });
+};
+
+export const getCreateLocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLocation>>,
+    TError,
+    { customerId: string; data: BodyType<CreateLocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createLocation>>,
+  TError,
+  { customerId: string; data: BodyType<CreateLocationBody> },
+  TContext
+> => {
+  const mutationKey = ["createLocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createLocation>>,
+    { customerId: string; data: BodyType<CreateLocationBody> }
+  > = (props) => {
+    const { customerId, data } = props ?? {};
+
+    return createLocation(customerId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateLocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createLocation>>
+>;
+export type CreateLocationMutationBody = BodyType<CreateLocationBody>;
+export type CreateLocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new location for a customer
+ */
+export const useCreateLocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLocation>>,
+    TError,
+    { customerId: string; data: BodyType<CreateLocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createLocation>>,
+  TError,
+  { customerId: string; data: BodyType<CreateLocationBody> },
+  TContext
+> => {
+  return useMutation(getCreateLocationMutationOptions(options));
+};
+
+/**
+ * @summary Delete a location and all its QR codes
+ */
+export const getDeleteLocationUrl = (
+  customerId: string,
+  locationId: string,
+) => {
+  return `/api/customers/${customerId}/locations/${locationId}`;
+};
+
+export const deleteLocation = async (
+  customerId: string,
+  locationId: string,
+  options?: RequestInit,
+): Promise<DeleteLocation200> => {
+  return customFetch<DeleteLocation200>(
+    getDeleteLocationUrl(customerId, locationId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteLocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLocation>>,
+    TError,
+    { customerId: string; locationId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteLocation>>,
+  TError,
+  { customerId: string; locationId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteLocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteLocation>>,
+    { customerId: string; locationId: string }
+  > = (props) => {
+    const { customerId, locationId } = props ?? {};
+
+    return deleteLocation(customerId, locationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteLocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteLocation>>
+>;
+
+export type DeleteLocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a location and all its QR codes
+ */
+export const useDeleteLocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLocation>>,
+    TError,
+    { customerId: string; locationId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteLocation>>,
+  TError,
+  { customerId: string; locationId: string },
+  TContext
+> => {
+  return useMutation(getDeleteLocationMutationOptions(options));
+};
+
+/**
+ * @summary Get all calibrated QR codes for a location
+ */
+export const getGetLocationQrCodesUrl = (locationId: string) => {
+  return `/api/locations/${locationId}/qr-codes`;
+};
+
+export const getLocationQrCodes = async (
+  locationId: string,
+  options?: RequestInit,
+): Promise<LocationQrData> => {
+  return customFetch<LocationQrData>(getGetLocationQrCodesUrl(locationId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLocationQrCodesQueryKey = (locationId: string) => {
+  return [`/api/locations/${locationId}/qr-codes`] as const;
+};
+
+export const getGetLocationQrCodesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLocationQrCodes>>,
+  TError = ErrorType<unknown>,
+>(
+  locationId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocationQrCodes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLocationQrCodesQueryKey(locationId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLocationQrCodes>>
+  > = ({ signal }) =>
+    getLocationQrCodes(locationId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!locationId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLocationQrCodes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLocationQrCodesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLocationQrCodes>>
+>;
+export type GetLocationQrCodesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all calibrated QR codes for a location
+ */
+
+export function useGetLocationQrCodes<
+  TData = Awaited<ReturnType<typeof getLocationQrCodes>>,
+  TError = ErrorType<unknown>,
+>(
+  locationId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocationQrCodes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLocationQrCodesQueryOptions(locationId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Import QR code calibration data (replaces existing)
+ */
+export const getImportLocationQrCodesUrl = (locationId: string) => {
+  return `/api/locations/${locationId}/qr-codes`;
+};
+
+export const importLocationQrCodes = async (
+  locationId: string,
+  importQrCodesBody: ImportQrCodesBody,
+  options?: RequestInit,
+): Promise<LocationQrData> => {
+  return customFetch<LocationQrData>(getImportLocationQrCodesUrl(locationId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importQrCodesBody),
+  });
+};
+
+export const getImportLocationQrCodesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importLocationQrCodes>>,
+    TError,
+    { locationId: string; data: BodyType<ImportQrCodesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importLocationQrCodes>>,
+  TError,
+  { locationId: string; data: BodyType<ImportQrCodesBody> },
+  TContext
+> => {
+  const mutationKey = ["importLocationQrCodes"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importLocationQrCodes>>,
+    { locationId: string; data: BodyType<ImportQrCodesBody> }
+  > = (props) => {
+    const { locationId, data } = props ?? {};
+
+    return importLocationQrCodes(locationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportLocationQrCodesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importLocationQrCodes>>
+>;
+export type ImportLocationQrCodesMutationBody = BodyType<ImportQrCodesBody>;
+export type ImportLocationQrCodesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import QR code calibration data (replaces existing)
+ */
+export const useImportLocationQrCodes = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importLocationQrCodes>>,
+    TError,
+    { locationId: string; data: BodyType<ImportQrCodesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importLocationQrCodes>>,
+  TError,
+  { locationId: string; data: BodyType<ImportQrCodesBody> },
+  TContext
+> => {
+  return useMutation(getImportLocationQrCodesMutationOptions(options));
+};
+
+/**
+ * @summary Clear all QR code calibration data for a location
+ */
+export const getClearLocationQrCodesUrl = (locationId: string) => {
+  return `/api/locations/${locationId}/qr-codes`;
+};
+
+export const clearLocationQrCodes = async (
+  locationId: string,
+  options?: RequestInit,
+): Promise<ClearLocationQrCodes200> => {
+  return customFetch<ClearLocationQrCodes200>(
+    getClearLocationQrCodesUrl(locationId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getClearLocationQrCodesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearLocationQrCodes>>,
+    TError,
+    { locationId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof clearLocationQrCodes>>,
+  TError,
+  { locationId: string },
+  TContext
+> => {
+  const mutationKey = ["clearLocationQrCodes"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof clearLocationQrCodes>>,
+    { locationId: string }
+  > = (props) => {
+    const { locationId } = props ?? {};
+
+    return clearLocationQrCodes(locationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearLocationQrCodesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof clearLocationQrCodes>>
+>;
+
+export type ClearLocationQrCodesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear all QR code calibration data for a location
+ */
+export const useClearLocationQrCodes = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearLocationQrCodes>>,
+    TError,
+    { locationId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof clearLocationQrCodes>>,
+  TError,
+  { locationId: string },
+  TContext
+> => {
+  return useMutation(getClearLocationQrCodesMutationOptions(options));
+};
+
+/**
+ * @summary Get all QR code name entries for a customer
+ */
+export const getListQrDictionaryUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/qr-dictionary`;
+};
+
+export const listQrDictionary = async (
+  customerId: string,
+  options?: RequestInit,
+): Promise<QrDictionaryEntry[]> => {
+  return customFetch<QrDictionaryEntry[]>(getListQrDictionaryUrl(customerId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListQrDictionaryQueryKey = (customerId: string) => {
+  return [`/api/customers/${customerId}/qr-dictionary`] as const;
+};
+
+export const getListQrDictionaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof listQrDictionary>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQrDictionary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListQrDictionaryQueryKey(customerId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listQrDictionary>>
+  > = ({ signal }) =>
+    listQrDictionary(customerId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!customerId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listQrDictionary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListQrDictionaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listQrDictionary>>
+>;
+export type ListQrDictionaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all QR code name entries for a customer
+ */
+
+export function useListQrDictionary<
+  TData = Awaited<ReturnType<typeof listQrDictionary>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQrDictionary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListQrDictionaryQueryOptions(customerId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a new QR code name entry
+ */
+export const getCreateQrDictionaryEntryUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/qr-dictionary`;
+};
+
+export const createQrDictionaryEntry = async (
+  customerId: string,
+  createQrDictionaryEntryBody: CreateQrDictionaryEntryBody,
+  options?: RequestInit,
+): Promise<QrDictionaryEntry> => {
+  return customFetch<QrDictionaryEntry>(
+    getCreateQrDictionaryEntryUrl(customerId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createQrDictionaryEntryBody),
+    },
+  );
+};
+
+export const getCreateQrDictionaryEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createQrDictionaryEntry>>,
+    TError,
+    { customerId: string; data: BodyType<CreateQrDictionaryEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createQrDictionaryEntry>>,
+  TError,
+  { customerId: string; data: BodyType<CreateQrDictionaryEntryBody> },
+  TContext
+> => {
+  const mutationKey = ["createQrDictionaryEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createQrDictionaryEntry>>,
+    { customerId: string; data: BodyType<CreateQrDictionaryEntryBody> }
+  > = (props) => {
+    const { customerId, data } = props ?? {};
+
+    return createQrDictionaryEntry(customerId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateQrDictionaryEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createQrDictionaryEntry>>
+>;
+export type CreateQrDictionaryEntryMutationBody =
+  BodyType<CreateQrDictionaryEntryBody>;
+export type CreateQrDictionaryEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a new QR code name entry
+ */
+export const useCreateQrDictionaryEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createQrDictionaryEntry>>,
+    TError,
+    { customerId: string; data: BodyType<CreateQrDictionaryEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createQrDictionaryEntry>>,
+  TError,
+  { customerId: string; data: BodyType<CreateQrDictionaryEntryBody> },
+  TContext
+> => {
+  return useMutation(getCreateQrDictionaryEntryMutationOptions(options));
+};
+
+/**
+ * @summary Update a QR code name entry
+ */
+export const getUpdateQrDictionaryEntryUrl = (
+  customerId: string,
+  entryId: string,
+) => {
+  return `/api/customers/${customerId}/qr-dictionary/${entryId}`;
+};
+
+export const updateQrDictionaryEntry = async (
+  customerId: string,
+  entryId: string,
+  createQrDictionaryEntryBody: CreateQrDictionaryEntryBody,
+  options?: RequestInit,
+): Promise<QrDictionaryEntry> => {
+  return customFetch<QrDictionaryEntry>(
+    getUpdateQrDictionaryEntryUrl(customerId, entryId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createQrDictionaryEntryBody),
+    },
+  );
+};
+
+export const getUpdateQrDictionaryEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQrDictionaryEntry>>,
+    TError,
+    {
+      customerId: string;
+      entryId: string;
+      data: BodyType<CreateQrDictionaryEntryBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateQrDictionaryEntry>>,
+  TError,
+  {
+    customerId: string;
+    entryId: string;
+    data: BodyType<CreateQrDictionaryEntryBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateQrDictionaryEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateQrDictionaryEntry>>,
+    {
+      customerId: string;
+      entryId: string;
+      data: BodyType<CreateQrDictionaryEntryBody>;
+    }
+  > = (props) => {
+    const { customerId, entryId, data } = props ?? {};
+
+    return updateQrDictionaryEntry(customerId, entryId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateQrDictionaryEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateQrDictionaryEntry>>
+>;
+export type UpdateQrDictionaryEntryMutationBody =
+  BodyType<CreateQrDictionaryEntryBody>;
+export type UpdateQrDictionaryEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a QR code name entry
+ */
+export const useUpdateQrDictionaryEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQrDictionaryEntry>>,
+    TError,
+    {
+      customerId: string;
+      entryId: string;
+      data: BodyType<CreateQrDictionaryEntryBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateQrDictionaryEntry>>,
+  TError,
+  {
+    customerId: string;
+    entryId: string;
+    data: BodyType<CreateQrDictionaryEntryBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateQrDictionaryEntryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a QR code name entry
+ */
+export const getDeleteQrDictionaryEntryUrl = (
+  customerId: string,
+  entryId: string,
+) => {
+  return `/api/customers/${customerId}/qr-dictionary/${entryId}`;
+};
+
+export const deleteQrDictionaryEntry = async (
+  customerId: string,
+  entryId: string,
+  options?: RequestInit,
+): Promise<DeleteQrDictionaryEntry200> => {
+  return customFetch<DeleteQrDictionaryEntry200>(
+    getDeleteQrDictionaryEntryUrl(customerId, entryId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteQrDictionaryEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteQrDictionaryEntry>>,
+    TError,
+    { customerId: string; entryId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteQrDictionaryEntry>>,
+  TError,
+  { customerId: string; entryId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteQrDictionaryEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteQrDictionaryEntry>>,
+    { customerId: string; entryId: string }
+  > = (props) => {
+    const { customerId, entryId } = props ?? {};
+
+    return deleteQrDictionaryEntry(customerId, entryId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteQrDictionaryEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteQrDictionaryEntry>>
+>;
+
+export type DeleteQrDictionaryEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a QR code name entry
+ */
+export const useDeleteQrDictionaryEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteQrDictionaryEntry>>,
+    TError,
+    { customerId: string; entryId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteQrDictionaryEntry>>,
+  TError,
+  { customerId: string; entryId: string },
+  TContext
+> => {
+  return useMutation(getDeleteQrDictionaryEntryMutationOptions(options));
+};
+
+/**
  * @summary List available headsets
  */
 export const getListHeadsetsUrl = (params?: ListHeadsetsParams) => {
@@ -535,6 +1461,127 @@ export function useListHeadsets<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListHeadsetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get startup sync data — called by Unity when the headset app launches
+ */
+export const getGetHeadsetStartupDataUrl = (
+  headsetId: string,
+  params: GetHeadsetStartupDataParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/headsets/${headsetId}/startup-data?${stringifiedParams}`
+    : `/api/headsets/${headsetId}/startup-data`;
+};
+
+export const getHeadsetStartupData = async (
+  headsetId: string,
+  params: GetHeadsetStartupDataParams,
+  options?: RequestInit,
+): Promise<HeadsetStartupData> => {
+  return customFetch<HeadsetStartupData>(
+    getGetHeadsetStartupDataUrl(headsetId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetHeadsetStartupDataQueryKey = (
+  headsetId: string,
+  params?: GetHeadsetStartupDataParams,
+) => {
+  return [
+    `/api/headsets/${headsetId}/startup-data`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetHeadsetStartupDataQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHeadsetStartupData>>,
+  TError = ErrorType<unknown>,
+>(
+  headsetId: string,
+  params: GetHeadsetStartupDataParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHeadsetStartupData>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetHeadsetStartupDataQueryKey(headsetId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHeadsetStartupData>>
+  > = ({ signal }) =>
+    getHeadsetStartupData(headsetId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!headsetId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHeadsetStartupData>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHeadsetStartupDataQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHeadsetStartupData>>
+>;
+export type GetHeadsetStartupDataQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get startup sync data — called by Unity when the headset app launches
+ */
+
+export function useGetHeadsetStartupData<
+  TData = Awaited<ReturnType<typeof getHeadsetStartupData>>,
+  TError = ErrorType<unknown>,
+>(
+  headsetId: string,
+  params: GetHeadsetStartupDataParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHeadsetStartupData>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHeadsetStartupDataQueryOptions(
+    headsetId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

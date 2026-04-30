@@ -43,7 +43,11 @@ pnpm workspace monorepo using TypeScript. Key packages:
 
 ## Database Schema
 
-Tables: `customers`, `headsets`, `sessions`, `messages`
+Tables: `customers`, `headsets`, `sessions`, `messages`, `locations`, `qr_codes`, `qr_dictionary`
+
+- `locations` — named physical sites per customer
+- `qr_codes` — spatial calibration data (position x/y/z, rotation x/y/z/w) per location, pushed by Meta Quest headsets
+- `qr_dictionary` — company-wide QR value → name mapping per customer
 
 Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 
@@ -55,7 +59,10 @@ Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 | `/admin` | Admin Home | Client Admin |
 | `/admin/troubleshoot` | Headset Selector | Client Admin |
 | `/admin/session/:sessionId` | Live Session (WebRTC + chat) | Client Admin |
-| `/admin/settings` | Account Settings (Point-to menu editor) | Client Admin |
+| `/admin/settings` | Account Settings hub (tile grid) | Client Admin |
+| `/admin/settings/point-to-objects` | Point-to Object Menu editor | Client Admin |
+| `/admin/settings/qr-dictionary` | QR Code Dictionary (name dict + locations) | Client Admin |
+| `/admin/settings/qr-dictionary/:locationId` | Location calibration detail | Client Admin |
 | `/tech` | Tech Portal | Client Tech |
 | `/tech/session?roomCode=&sessionId=` | Tech Live Stream | Client Tech |
 | `/tevr` | TEVR Ops Dashboard | TEVR Internal |
@@ -69,12 +76,29 @@ Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 - `chat-message` — text chat
 - `point-to` — admin instructs headset to highlight a named object
 
-## Customer Settings (Point-to Menu)
+## Customer Settings
 
+### Point-to Menu
 - `customers.pointToObjects` jsonb column stores `Array<{ label: string; children?: { label: string }[] }>` (one level of nesting).
 - Endpoint `PUT /api/customers/{customerId}/point-to-objects` replaces the menu (validation: 1-80 char labels, max 50 items / 50 children).
-- `/admin/settings` page edits the menu for the first customer (full multi-tenant scoping deferred — see follow-up tasks).
+- `/admin/settings/point-to-objects` page edits the menu for the first customer.
 - `/admin/session` renders the menu as `<select>` with `<optgroup>` blocks for submenus.
+
+### QR Code Dictionary
+- **Name dictionary**: `qr_dictionary` table — company-wide `qrValue → name` mapping. Editable in `/admin/settings/qr-dictionary`. Changes saved with batch Save/Discard (same pattern as Point-to Menu).
+- **Locations**: `locations` table — named physical sites per customer. Each location has its own calibrated QR code set in `qr_codes`.
+- **Calibration flow**: Unity app → user selects location → taps Start Calibration → scans QR codes → taps Stop Calibration → Unity calls `PUT /api/locations/{locationId}/qr-codes` with `{ headsetId, qrCodes: [{qrValue, position, rotation}] }` — atomically replaces existing data.
+- **Headset app-start sync**: `GET /api/headsets/{headsetId}/startup-data?locationId=…` — returns merged spatial QR data (with names resolved from dictionary) plus the full name dictionary. Called by Unity when the app starts.
+
+### API routes
+- `GET/POST /api/customers/{id}/locations` — list / create locations
+- `DELETE /api/customers/{id}/locations/{locationId}` — delete location + cascade QR codes
+- `GET /api/locations/{id}/qr-codes` — get calibration data
+- `PUT /api/locations/{id}/qr-codes` — import calibration (atomic replace)
+- `DELETE /api/locations/{id}/qr-codes` — clear calibration
+- `GET/POST /api/customers/{id}/qr-dictionary` — list / create entries
+- `PUT/DELETE /api/customers/{id}/qr-dictionary/{entryId}` — update / delete entries
+- `GET /api/headsets/{id}/startup-data?locationId=…` — headset app-start sync
 
 ## Unity / Quest Integration
 

@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -79,3 +79,48 @@ export const messagesTable = pgTable("messages", {
 export const insertMessageSchema = createInsertSchema(messagesTable).omit({ sentAt: true });
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messagesTable.$inferSelect;
+
+/* ── Locations ── */
+export const locationsTable = pgTable("locations", {
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").notNull().references(() => customersTable.id),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLocationSchema = createInsertSchema(locationsTable).omit({ createdAt: true });
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+export type Location = typeof locationsTable.$inferSelect;
+
+/* ── QR Codes (spatial calibration per location) ── */
+export const qrCodesTable = pgTable("qr_codes", {
+  id: text("id").primaryKey(),
+  locationId: text("location_id").notNull().references(() => locationsTable.id),
+  qrValue: text("qr_value").notNull(),
+  posX: doublePrecision("pos_x").notNull(),
+  posY: doublePrecision("pos_y").notNull(),
+  posZ: doublePrecision("pos_z").notNull(),
+  rotX: doublePrecision("rot_x").notNull(),
+  rotY: doublePrecision("rot_y").notNull(),
+  rotZ: doublePrecision("rot_z").notNull(),
+  rotW: doublePrecision("rot_w").notNull(),
+  calibratedAt: timestamp("calibrated_at").notNull().defaultNow(),
+  headsetId: text("headset_id"),
+});
+
+export const insertQrCodeSchema = createInsertSchema(qrCodesTable).omit({ calibratedAt: true });
+export type InsertQrCode = z.infer<typeof insertQrCodeSchema>;
+export type QrCode = typeof qrCodesTable.$inferSelect;
+
+/* ── QR Dictionary (company-wide name mapping) ── */
+export const qrDictionaryTable = pgTable("qr_dictionary", {
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").notNull().references(() => customersTable.id),
+  qrValue: text("qr_value").notNull(),
+  name: text("name").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertQrDictionarySchema = createInsertSchema(qrDictionaryTable).omit({ updatedAt: true });
+export type InsertQrDictionary = z.infer<typeof insertQrDictionarySchema>;
+export type QrDictionaryEntry = typeof qrDictionaryTable.$inferSelect;

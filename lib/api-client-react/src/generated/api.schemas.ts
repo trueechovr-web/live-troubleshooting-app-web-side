@@ -59,6 +59,117 @@ export interface CreateCustomerBody {
   programVersion: string;
 }
 
+export interface LocationSummary {
+  id: string;
+  customerId: string;
+  name: string;
+  createdAt: string;
+  qrCodeCount: number;
+  lastCalibratedAt?: string;
+  lastCalibratedByHeadsetId?: string;
+}
+
+export interface CreateLocationBody {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  name: string;
+}
+
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Vec4 {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}
+
+export interface QrCode {
+  id: string;
+  locationId: string;
+  qrValue: string;
+  posX: number;
+  posY: number;
+  posZ: number;
+  rotX: number;
+  rotY: number;
+  rotZ: number;
+  rotW: number;
+  calibratedAt: string;
+  headsetId?: string;
+}
+
+export interface LocationQrData {
+  locationId: string;
+  locationName: string;
+  qrCodes: QrCode[];
+  lastCalibratedAt?: string;
+  lastCalibratedByHeadsetId?: string;
+}
+
+export interface QrCodeImportItem {
+  /** @minLength 1 */
+  qrValue: string;
+  position: Vec3;
+  rotation: Vec4;
+}
+
+export interface ImportQrCodesBody {
+  headsetId?: string;
+  qrCodes: QrCodeImportItem[];
+}
+
+export interface QrDictionaryEntry {
+  id: string;
+  customerId: string;
+  qrValue: string;
+  name: string;
+  updatedAt: string;
+}
+
+export interface CreateQrDictionaryEntryBody {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  qrValue: string;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  name: string;
+}
+
+export interface HeadsetStartupQrCode {
+  qrValue: string;
+  name?: string;
+  posX: number;
+  posY: number;
+  posZ: number;
+  rotX: number;
+  rotY: number;
+  rotZ: number;
+  rotW: number;
+}
+
+export type HeadsetStartupDataNameDictionaryItem = {
+  qrValue: string;
+  name: string;
+};
+
+export interface HeadsetStartupData {
+  locationId: string;
+  locationName: string;
+  qrCodes: HeadsetStartupQrCode[];
+  nameDictionary: HeadsetStartupDataNameDictionaryItem[];
+}
+
 export type HeadsetStatus = (typeof HeadsetStatus)[keyof typeof HeadsetStatus];
 
 export const HeadsetStatus = {
@@ -155,6 +266,18 @@ export interface DashboardSummary {
   customersByStatus: DashboardSummaryCustomersByStatus;
 }
 
+export type DeleteLocation200 = {
+  ok: boolean;
+};
+
+export type ClearLocationQrCodes200 = {
+  ok: boolean;
+};
+
+export type DeleteQrDictionaryEntry200 = {
+  ok: boolean;
+};
+
 export type ListHeadsetsParams = {
   status?: ListHeadsetsStatus;
 };
@@ -167,3 +290,7 @@ export const ListHeadsetsStatus = {
   offline: "offline",
   busy: "busy",
 } as const;
+
+export type GetHeadsetStartupDataParams = {
+  locationId: string;
+};

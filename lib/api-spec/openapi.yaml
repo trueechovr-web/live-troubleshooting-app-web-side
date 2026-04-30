@@ -18,6 +18,10 @@ tags:
     description: Streaming session management
   - name: messages
     description: Session messaging
+  - name: locations
+    description: Customer location management
+  - name: qr-dictionary
+    description: Company-wide QR code name dictionary
 paths:
   /healthz:
     get:
@@ -108,6 +112,241 @@ paths:
               schema:
                 $ref: "#/components/schemas/Customer"
 
+  /customers/{customerId}/locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: List all locations for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of locations with QR code count and calibration info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocationSummary"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      summary: Create a new location for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationBody"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSummary"
+
+  /customers/{customerId}/locations/{locationId}:
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      summary: Delete a location and all its QR codes
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Location deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
+  /locations/{locationId}/qr-codes:
+    get:
+      operationId: getLocationQrCodes
+      tags: [locations]
+      summary: Get all calibrated QR codes for a location
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: QR codes for the location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationQrData"
+    put:
+      operationId: importLocationQrCodes
+      tags: [locations]
+      summary: Import QR code calibration data (replaces existing)
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportQrCodesBody"
+      responses:
+        "200":
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationQrData"
+    delete:
+      operationId: clearLocationQrCodes
+      tags: [locations]
+      summary: Clear all QR code calibration data for a location
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Calibration cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
+  /customers/{customerId}/qr-dictionary:
+    get:
+      operationId: listQrDictionary
+      tags: [qr-dictionary]
+      summary: Get all QR code name entries for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of QR dictionary entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QrDictionaryEntry"
+    post:
+      operationId: createQrDictionaryEntry
+      tags: [qr-dictionary]
+      summary: Add a new QR code name entry
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQrDictionaryEntryBody"
+      responses:
+        "201":
+          description: Created entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrDictionaryEntry"
+
+  /customers/{customerId}/qr-dictionary/{entryId}:
+    put:
+      operationId: updateQrDictionaryEntry
+      tags: [qr-dictionary]
+      summary: Update a QR code name entry
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQrDictionaryEntryBody"
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrDictionaryEntry"
+    delete:
+      operationId: deleteQrDictionaryEntry
+      tags: [qr-dictionary]
+      summary: Delete a QR code name entry
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entry deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
   /headsets:
     get:
       operationId: listHeadsets
@@ -129,6 +368,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Headset"
+
+  /headsets/{headsetId}/startup-data:
+    get:
+      operationId: getHeadsetStartupData
+      tags: [headsets]
+      summary: Get startup sync data — called by Unity when the headset app launches
+      parameters:
+        - name: headsetId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Location QR data merged with names plus the full company name dictionary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadsetStartupData"
 
   /sessions:
     get:
@@ -329,6 +592,201 @@ components:
         programVersion:
           type: string
       required: [name, contactEmail, programVersion]
+
+    LocationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+        qrCodeCount:
+          type: integer
+        lastCalibratedAt:
+          type: string
+        lastCalibratedByHeadsetId:
+          type: string
+      required: [id, customerId, name, createdAt, qrCodeCount]
+
+    CreateLocationBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [name]
+
+    Vec3:
+      type: object
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        z:
+          type: number
+      required: [x, y, z]
+
+    Vec4:
+      type: object
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        z:
+          type: number
+        w:
+          type: number
+      required: [x, y, z, w]
+
+    QrCode:
+      type: object
+      properties:
+        id:
+          type: string
+        locationId:
+          type: string
+        qrValue:
+          type: string
+        posX:
+          type: number
+        posY:
+          type: number
+        posZ:
+          type: number
+        rotX:
+          type: number
+        rotY:
+          type: number
+        rotZ:
+          type: number
+        rotW:
+          type: number
+        calibratedAt:
+          type: string
+        headsetId:
+          type: string
+      required: [id, locationId, qrValue, posX, posY, posZ, rotX, rotY, rotZ, rotW, calibratedAt]
+
+    LocationQrData:
+      type: object
+      properties:
+        locationId:
+          type: string
+        locationName:
+          type: string
+        qrCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/QrCode"
+        lastCalibratedAt:
+          type: string
+        lastCalibratedByHeadsetId:
+          type: string
+      required: [locationId, locationName, qrCodes]
+
+    QrCodeImportItem:
+      type: object
+      properties:
+        qrValue:
+          type: string
+          minLength: 1
+        position:
+          $ref: "#/components/schemas/Vec3"
+        rotation:
+          $ref: "#/components/schemas/Vec4"
+      required: [qrValue, position, rotation]
+
+    ImportQrCodesBody:
+      type: object
+      properties:
+        headsetId:
+          type: string
+        qrCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/QrCodeImportItem"
+      required: [qrCodes]
+
+    QrDictionaryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        qrValue:
+          type: string
+        name:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, customerId, qrValue, name, updatedAt]
+
+    CreateQrDictionaryEntryBody:
+      type: object
+      properties:
+        qrValue:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [qrValue, name]
+
+    HeadsetStartupQrCode:
+      type: object
+      properties:
+        qrValue:
+          type: string
+        name:
+          type: string
+        posX:
+          type: number
+        posY:
+          type: number
+        posZ:
+          type: number
+        rotX:
+          type: number
+        rotY:
+          type: number
+        rotZ:
+          type: number
+        rotW:
+          type: number
+      required: [qrValue, posX, posY, posZ, rotX, rotY, rotZ, rotW]
+
+    HeadsetStartupData:
+      type: object
+      properties:
+        locationId:
+          type: string
+        locationName:
+          type: string
+        qrCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeadsetStartupQrCode"
+        nameDictionary:
+          type: array
+          items:
+            type: object
+            properties:
+              qrValue:
+                type: string
+              name:
+                type: string
+            required: [qrValue, name]
+      required: [locationId, locationName, qrCodes, nameDictionary]
 
     Headset:
       type: object

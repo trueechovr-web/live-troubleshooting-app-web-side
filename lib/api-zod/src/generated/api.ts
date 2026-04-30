@@ -192,6 +192,209 @@ export const UpdateCustomerPointToObjectsResponse = zod.object({
 });
 
 /**
+ * @summary List all locations for a customer
+ */
+export const ListLocationsParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const ListLocationsResponseItem = zod.object({
+  id: zod.string(),
+  customerId: zod.string(),
+  name: zod.string(),
+  createdAt: zod.string(),
+  qrCodeCount: zod.number(),
+  lastCalibratedAt: zod.string().optional(),
+  lastCalibratedByHeadsetId: zod.string().optional(),
+});
+export const ListLocationsResponse = zod.array(ListLocationsResponseItem);
+
+/**
+ * @summary Create a new location for a customer
+ */
+export const CreateLocationParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const createLocationBodyNameMax = 100;
+
+export const CreateLocationBody = zod.object({
+  name: zod.string().min(1).max(createLocationBodyNameMax),
+});
+
+/**
+ * @summary Delete a location and all its QR codes
+ */
+export const DeleteLocationParams = zod.object({
+  customerId: zod.coerce.string(),
+  locationId: zod.coerce.string(),
+});
+
+export const DeleteLocationResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Get all calibrated QR codes for a location
+ */
+export const GetLocationQrCodesParams = zod.object({
+  locationId: zod.coerce.string(),
+});
+
+export const GetLocationQrCodesResponse = zod.object({
+  locationId: zod.string(),
+  locationName: zod.string(),
+  qrCodes: zod.array(
+    zod.object({
+      id: zod.string(),
+      locationId: zod.string(),
+      qrValue: zod.string(),
+      posX: zod.number(),
+      posY: zod.number(),
+      posZ: zod.number(),
+      rotX: zod.number(),
+      rotY: zod.number(),
+      rotZ: zod.number(),
+      rotW: zod.number(),
+      calibratedAt: zod.string(),
+      headsetId: zod.string().optional(),
+    }),
+  ),
+  lastCalibratedAt: zod.string().optional(),
+  lastCalibratedByHeadsetId: zod.string().optional(),
+});
+
+/**
+ * @summary Import QR code calibration data (replaces existing)
+ */
+export const ImportLocationQrCodesParams = zod.object({
+  locationId: zod.coerce.string(),
+});
+
+export const ImportLocationQrCodesBody = zod.object({
+  headsetId: zod.string().optional(),
+  qrCodes: zod.array(
+    zod.object({
+      qrValue: zod.string().min(1),
+      position: zod.object({
+        x: zod.number(),
+        y: zod.number(),
+        z: zod.number(),
+      }),
+      rotation: zod.object({
+        x: zod.number(),
+        y: zod.number(),
+        z: zod.number(),
+        w: zod.number(),
+      }),
+    }),
+  ),
+});
+
+export const ImportLocationQrCodesResponse = zod.object({
+  locationId: zod.string(),
+  locationName: zod.string(),
+  qrCodes: zod.array(
+    zod.object({
+      id: zod.string(),
+      locationId: zod.string(),
+      qrValue: zod.string(),
+      posX: zod.number(),
+      posY: zod.number(),
+      posZ: zod.number(),
+      rotX: zod.number(),
+      rotY: zod.number(),
+      rotZ: zod.number(),
+      rotW: zod.number(),
+      calibratedAt: zod.string(),
+      headsetId: zod.string().optional(),
+    }),
+  ),
+  lastCalibratedAt: zod.string().optional(),
+  lastCalibratedByHeadsetId: zod.string().optional(),
+});
+
+/**
+ * @summary Clear all QR code calibration data for a location
+ */
+export const ClearLocationQrCodesParams = zod.object({
+  locationId: zod.coerce.string(),
+});
+
+export const ClearLocationQrCodesResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Get all QR code name entries for a customer
+ */
+export const ListQrDictionaryParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const ListQrDictionaryResponseItem = zod.object({
+  id: zod.string(),
+  customerId: zod.string(),
+  qrValue: zod.string(),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListQrDictionaryResponse = zod.array(ListQrDictionaryResponseItem);
+
+/**
+ * @summary Add a new QR code name entry
+ */
+export const CreateQrDictionaryEntryParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const createQrDictionaryEntryBodyQrValueMax = 100;
+
+export const createQrDictionaryEntryBodyNameMax = 100;
+
+export const CreateQrDictionaryEntryBody = zod.object({
+  qrValue: zod.string().min(1).max(createQrDictionaryEntryBodyQrValueMax),
+  name: zod.string().min(1).max(createQrDictionaryEntryBodyNameMax),
+});
+
+/**
+ * @summary Update a QR code name entry
+ */
+export const UpdateQrDictionaryEntryParams = zod.object({
+  customerId: zod.coerce.string(),
+  entryId: zod.coerce.string(),
+});
+
+export const updateQrDictionaryEntryBodyQrValueMax = 100;
+
+export const updateQrDictionaryEntryBodyNameMax = 100;
+
+export const UpdateQrDictionaryEntryBody = zod.object({
+  qrValue: zod.string().min(1).max(updateQrDictionaryEntryBodyQrValueMax),
+  name: zod.string().min(1).max(updateQrDictionaryEntryBodyNameMax),
+});
+
+export const UpdateQrDictionaryEntryResponse = zod.object({
+  id: zod.string(),
+  customerId: zod.string(),
+  qrValue: zod.string(),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a QR code name entry
+ */
+export const DeleteQrDictionaryEntryParams = zod.object({
+  customerId: zod.coerce.string(),
+  entryId: zod.coerce.string(),
+});
+
+export const DeleteQrDictionaryEntryResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
  * @summary List available headsets
  */
 export const ListHeadsetsQueryParams = zod.object({
@@ -210,6 +413,41 @@ export const ListHeadsetsResponseItem = zod.object({
   lastSeen: zod.string(),
 });
 export const ListHeadsetsResponse = zod.array(ListHeadsetsResponseItem);
+
+/**
+ * @summary Get startup sync data — called by Unity when the headset app launches
+ */
+export const GetHeadsetStartupDataParams = zod.object({
+  headsetId: zod.coerce.string(),
+});
+
+export const GetHeadsetStartupDataQueryParams = zod.object({
+  locationId: zod.coerce.string(),
+});
+
+export const GetHeadsetStartupDataResponse = zod.object({
+  locationId: zod.string(),
+  locationName: zod.string(),
+  qrCodes: zod.array(
+    zod.object({
+      qrValue: zod.string(),
+      name: zod.string().optional(),
+      posX: zod.number(),
+      posY: zod.number(),
+      posZ: zod.number(),
+      rotX: zod.number(),
+      rotY: zod.number(),
+      rotZ: zod.number(),
+      rotW: zod.number(),
+    }),
+  ),
+  nameDictionary: zod.array(
+    zod.object({
+      qrValue: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+});
 
 /**
  * @summary List active streaming sessions

@@ -10,6 +10,8 @@ import AdminTroubleshoot from "@/pages/admin-troubleshoot";
 import AdminSession from "@/pages/admin-session";
 import AdminSettings from "@/pages/admin-settings";
 import AdminPointToObjects from "@/pages/admin-point-to-objects";
+import AdminQrDictionary from "@/pages/admin-qr-dictionary";
+import AdminQrLocation from "@/pages/admin-qr-location";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
 
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/admin/session/:sessionId" component={AdminSession} />
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/admin/settings/point-to-objects" component={AdminPointToObjects} />
+      <Route path="/admin/settings/qr-dictionary" component={AdminQrDictionary} />
+      <Route path="/admin/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
       <Route path="/tech" component={TechPortal} />
       <Route path="/tech/session" component={TechSession} />
       <Route component={NotFound} />
