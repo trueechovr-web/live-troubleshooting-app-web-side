@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetSession, useListMessages, useSendMessage, useEndSession, useListCustomers, getListMessagesQueryKey } from "@workspace/api-client-react";
+import {
+  useGetSession, useListMessages, useSendMessage, useEndSession, useListCustomers,
+  getListMessagesQueryKey, useListLocations, useListQrDictionary,
+  getGetLocationQrCodesQueryOptions,
+} from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQueries } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function AdminSession() {
@@ -23,17 +27,30 @@ export default function AdminSession() {
 
   const session    = useGetSession(sessionId, { query: { enabled: !!sessionId } });
   const customers  = useListCustomers();
-  const pointToObjects = customers.data?.[0]?.pointToObjects ?? [];
+  const customerId = customers.data?.[0]?.id ?? "";
+
+  const locations  = useListLocations(customerId, { query: { enabled: !!customerId } });
+  const dictionary = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
+
+  const nameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of dictionary.data ?? []) map.set(e.qrValue, e.name);
+    return map;
+  }, [dictionary.data]);
+
+  const locationQrQueries = useQueries({
+    queries: (locations.data ?? []).map((loc) => getGetLocationQrCodesQueryOptions(loc.id)),
+  });
 
   const categories = useMemo(() => {
-    const ungrouped = pointToObjects.filter((it) => !it.children?.length).map((it) => it.label);
-    const groups = pointToObjects
-      .filter((it) => it.children && it.children.length > 0)
-      .map((it) => ({ id: it.label, label: it.label, items: it.children!.map((c) => c.label) }));
-    const cats: { id: string; label: string; items: string[] }[] = [];
-    if (ungrouped.length > 0) cats.push({ id: "__equipment__", label: "Equipment", items: ungrouped });
-    return [...cats, ...groups];
-  }, [pointToObjects]);
+    return (locations.data ?? [])
+      .map((loc, i) => {
+        const qrData = locationQrQueries[i]?.data;
+        const items = (qrData?.qrCodes ?? []).map((qr) => nameMap.get(qr.qrValue) ?? qr.qrValue);
+        return { id: loc.id, label: loc.name, items };
+      })
+      .filter((cat) => cat.items.length > 0);
+  }, [locations.data, locationQrQueries, nameMap]);
   const messages   = useListMessages(sessionId, {
     query: { enabled: !!sessionId, queryKey: getListMessagesQueryKey(sessionId), refetchInterval: 2000 },
   });
@@ -171,7 +188,7 @@ export default function AdminSession() {
                 </div>
 
                 {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No objects configured.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">No calibrated QR codes available. Calibrate headsets from the QR Code Dictionary settings.</p>
                 ) : (
                   <div className="flex flex-1 overflow-hidden">
                     {/* Left: category tabs */}

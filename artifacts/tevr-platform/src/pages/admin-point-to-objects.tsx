@@ -1,221 +1,49 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import {
   useListCustomers,
-  useUpdateCustomerPointToObjects,
-  getGetCustomerQueryKey,
-  getListCustomersQueryKey,
+  useListLocations,
+  useListQrDictionary,
+  getGetLocationQrCodesQueryOptions,
 } from "@workspace/api-client-react";
-import type { PointToItem } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-function DropLine({ show }: { show: boolean }) {
-  return (
-    <div className="px-1 py-[3px]">
-      <div
-        className={`h-0.5 rounded-full transition-all duration-150 ${
-          show ? "bg-primary opacity-100" : "bg-transparent opacity-0"
-        }`}
-      />
-    </div>
-  );
-}
 
 export default function AdminPointToObjects() {
   const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
 
-  const customers = useListCustomers();
-  const customer = customers.data?.[0];
+  const customers  = useListCustomers();
+  const customer   = customers.data?.[0];
+  const customerId = customer?.id ?? "";
 
-  const [items, setItems] = useState<PointToItem[]>([]);
-  const [dirty, setDirty] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
+  const locations  = useListLocations(customerId, { query: { enabled: !!customerId } });
+  const dictionary = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
 
-  const dragItem = useRef<number | null>(null);
-  const dropInsertIdx = useRef<number | null>(null);
-  const [dropLineIdx, setDropLineIdx] = useState<number | null>(null);
+  const nameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of dictionary.data ?? []) map.set(e.qrValue, e.name);
+    return map;
+  }, [dictionary.data]);
 
-  const dragChildSrc = useRef<{ parent: number; idx: number } | null>(null);
-  const dropChildInsertIdx = useRef<{ parent: number; idx: number } | null>(null);
-  const [dropChildLineIdx, setDropChildLineIdx] = useState<{ parent: number; idx: number } | null>(null);
+  const locationQrQueries = useQueries({
+    queries: (locations.data ?? []).map((loc) => getGetLocationQrCodesQueryOptions(loc.id)),
+  });
 
-  useEffect(() => {
-    if (customer && !dirty) {
-      setItems(customer.pointToObjects ?? []);
-    }
-  }, [customer, dirty]);
+  const locationItems = useMemo(() => {
+    return (locations.data ?? []).map((loc, i) => {
+      const qrData = locationQrQueries[i]?.data;
+      const codes = (qrData?.qrCodes ?? []).map((qr) => ({
+        qrValue: qr.qrValue,
+        displayName: nameMap.get(qr.qrValue) ?? qr.qrValue,
+        hasName: nameMap.has(qr.qrValue),
+        calibratedAt: qr.calibratedAt,
+      }));
+      return { id: loc.id, name: loc.name, codes, loading: locationQrQueries[i]?.isLoading };
+    });
+  }, [locations.data, locationQrQueries, nameMap]);
 
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
-
-  const updateMutation = useUpdateCustomerPointToObjects();
-
-  const totalCount = useMemo(
-    () => items.reduce((sum, it) => sum + 1 + (it.children?.length ?? 0), 0),
-    [items],
-  );
-
-  const updateItems = (next: PointToItem[]) => {
-    setItems(next);
-    setDirty(true);
-    setSaveMessage("");
-  };
-
-  const handleAddItem = () => updateItems([{ label: "" }, ...items]);
-  const handleAddSubmenu = () => updateItems([{ label: "", children: [{ label: "" }] }, ...items]);
-
-  const handleRenameItem = (idx: number, label: string) =>
-    updateItems(items.map((it, i) => (i === idx ? { ...it, label } : it)));
-
-  const handleDeleteItem = (idx: number) =>
-    updateItems(items.filter((_, i) => i !== idx));
-
-  const handleConvertToSubmenu = (idx: number) =>
-    updateItems(items.map((it, i) => (i === idx ? { ...it, children: it.children ?? [{ label: "" }] } : it)));
-
-  const handleConvertToItem = (idx: number) =>
-    updateItems(
-      items.map((it, i) => {
-        if (i !== idx) return it;
-        const { children: _c, ...rest } = it;
-        return rest;
-      }),
-    );
-
-  const handleAddChild = (parentIdx: number) =>
-    updateItems(
-      items.map((it, i) =>
-        i === parentIdx ? { ...it, children: [...(it.children ?? []), { label: "" }] } : it,
-      ),
-    );
-
-  const handleRenameChild = (parentIdx: number, ci: number, label: string) =>
-    updateItems(
-      items.map((it, i) =>
-        i === parentIdx
-          ? { ...it, children: (it.children ?? []).map((c, j) => (j === ci ? { ...c, label } : c)) }
-          : it,
-      ),
-    );
-
-  const handleDeleteChild = (parentIdx: number, ci: number) =>
-    updateItems(
-      items.map((it, i) =>
-        i === parentIdx ? { ...it, children: (it.children ?? []).filter((_, j) => j !== ci) } : it,
-      ),
-    );
-
-  /* ── Top-level drag ── */
-  const handleDragStart = (idx: number) => { dragItem.current = idx; };
-
-  const handleItemDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const insertIdx = e.clientY < rect.top + rect.height / 2 ? idx : idx + 1;
-    setDropLineIdx(insertIdx);
-    dropInsertIdx.current = insertIdx;
-  };
-
-  const handleDragEnd = () => {
-    setDropLineIdx(null);
-    const from = dragItem.current;
-    const to = dropInsertIdx.current;
-    dragItem.current = null;
-    dropInsertIdx.current = null;
-    if (from === null || to === null) return;
-    if (from === to || from + 1 === to) return;
-    const next = [...items];
-    const [removed] = next.splice(from, 1);
-    const adjustedTo = to > from ? to - 1 : to;
-    next.splice(adjustedTo, 0, removed);
-    updateItems(next);
-  };
-
-  /* ── Child drag ── */
-  const handleChildDragStart = (e: React.DragEvent, parent: number, idx: number) => {
-    e.stopPropagation();
-    dragChildSrc.current = { parent, idx };
-  };
-
-  const handleChildDragOver = (e: React.DragEvent, parent: number, idx: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const insertIdx = e.clientY < rect.top + rect.height / 2 ? idx : idx + 1;
-    setDropChildLineIdx({ parent, idx: insertIdx });
-    dropChildInsertIdx.current = { parent, idx: insertIdx };
-  };
-
-  const handleChildDragEnd = (e: React.DragEvent, parent: number) => {
-    e.stopPropagation();
-    setDropChildLineIdx(null);
-    const src = dragChildSrc.current;
-    const dst = dropChildInsertIdx.current;
-    dragChildSrc.current = null;
-    dropChildInsertIdx.current = null;
-    if (!src || !dst || src.parent !== parent || dst.parent !== parent) return;
-    if (src.idx === dst.idx || src.idx + 1 === dst.idx) return;
-    const next = [...items];
-    const children = [...(next[parent].children ?? [])];
-    const [removed] = children.splice(src.idx, 1);
-    const adjustedTo = dst.idx > src.idx ? dst.idx - 1 : dst.idx;
-    children.splice(adjustedTo, 0, removed);
-    next[parent] = { ...next[parent], children };
-    updateItems(next);
-  };
-
-  /* ── Save / reset ── */
-  const handleSave = () => {
-    if (!customer) return;
-    const cleaned: PointToItem[] = items
-      .map((it) => {
-        const label = it.label.trim();
-        if (!label) return null;
-        if (it.children) {
-          const cleanChildren = it.children.map((c) => ({ label: c.label.trim() })).filter((c) => c.label.length > 0);
-          return cleanChildren.length > 0 ? { label, children: cleanChildren } : { label };
-        }
-        return { label };
-      })
-      .filter((it): it is PointToItem => it !== null);
-
-    const allLabels: string[] = [];
-    for (const it of cleaned) {
-      allLabels.push(it.label.toLowerCase());
-      for (const c of it.children ?? []) allLabels.push(c.label.toLowerCase());
-    }
-    const dupe = allLabels.find((l, i) => allLabels.indexOf(l) !== i);
-    if (dupe) { setSaveMessage(`Duplicate label: "${dupe}"`); return; }
-
-    updateMutation.mutate(
-      { customerId: customer.id, data: cleaned },
-      {
-        onSuccess: () => {
-          setItems(cleaned);
-          setDirty(false);
-          setSaveMessage("Saved");
-          queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(customer.id) });
-          setTimeout(() => setSaveMessage(""), 2500);
-        },
-        onError: () => setSaveMessage("Failed to save"),
-      },
-    );
-  };
-
-  const handleReset = () => {
-    if (customer) { setItems(customer.pointToObjects ?? []); setDirty(false); setSaveMessage(""); }
-  };
+  const totalItems = locationItems.reduce((s, l) => s + l.codes.length, 0);
+  const isLoading  = customers.isLoading || locations.isLoading;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -247,142 +75,114 @@ export default function AdminPointToObjects() {
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-foreground mb-1">Point-to Object Menu</h1>
           <p className="text-sm text-muted-foreground">
-            Configure the list of objects an admin can highlight to a technician during a live
-            session. Group related items into submenus for easier navigation.
+            Objects available in the Point-to menu are automatically sourced from QR codes calibrated
+            by headsets. Each location becomes a category tab, and its calibrated QR codes become the
+            selectable objects. Manage names and calibration data in{" "}
+            <button
+              onClick={() => setLocation("/admin/settings/qr-dictionary")}
+              className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+            >
+              QR Code Dictionary
+            </button>
+            .
           </p>
         </div>
 
-        {customers.isLoading ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading…</div>
+        {isLoading ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            Loading…
+          </div>
         ) : !customer ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">No customer account found.</div>
+          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            No customer account found.
+          </div>
+        ) : locationItems.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center gap-3 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-muted-foreground">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">No locations set up yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Create locations and calibrate headsets in the QR Code Dictionary to populate this menu.
+              </p>
+            </div>
+            <button
+              onClick={() => setLocation("/admin/settings/qr-dictionary")}
+              className="mt-1 text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Go to QR Code Dictionary
+            </button>
+          </div>
         ) : (
           <>
-            <div className="rounded-xl border border-border bg-card p-5 mb-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{customer.name}</p>
-                  <p className="text-xs text-muted-foreground">{totalCount} {totalCount === 1 ? "item" : "items"}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button data-testid="add-item" onClick={handleAddItem} className="text-sm px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors">
-                    + Add item
-                  </button>
-                  <button data-testid="add-submenu" onClick={handleAddSubmenu} className="text-sm px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors">
-                    + Add submenu
-                  </button>
-                </div>
-              </div>
-
-              {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">No items yet. Add an item or submenu above.</p>
-              ) : (
-                <ul className="flex flex-col">
-                  <DropLine show={dropLineIdx === 0} />
-                  {items.map((item, idx) => {
-                    const isSubmenu = item.children !== undefined;
-                    return (
-                      <li key={idx} data-testid={`item-${idx}`}>
-                        <div
-                          draggable
-                          onDragStart={() => handleDragStart(idx)}
-                          onDragOver={(e) => handleItemDragOver(e, idx)}
-                          onDragEnd={handleDragEnd}
-                          className="rounded-lg border border-border bg-background p-3 cursor-grab active:cursor-grabbing active:opacity-50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground/40 hover:text-muted-foreground shrink-0 px-0.5" title="Drag to reorder">
-                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8.5 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                              </svg>
-                            </span>
-                            <span className={`text-xs font-medium px-2 py-1 rounded shrink-0 ${isSubmenu ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                              {isSubmenu ? "Submenu" : "Item"}
-                            </span>
-                            <input
-                              type="text"
-                              data-testid={`item-${idx}-label`}
-                              value={item.label}
-                              placeholder={isSubmenu ? "Submenu name" : "Object name"}
-                              onChange={(e) => handleRenameItem(idx, e.target.value)}
-                              className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                            {isSubmenu ? (
-                              <button data-testid={`item-${idx}-flatten`} onClick={() => handleConvertToItem(idx)} className="text-xs px-2 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                Flatten
-                              </button>
-                            ) : (
-                              <button data-testid={`item-${idx}-make-submenu`} onClick={() => handleConvertToSubmenu(idx)} className="text-xs px-2 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                Make submenu
-                              </button>
-                            )}
-                            <button data-testid={`item-${idx}-delete`} onClick={() => handleDeleteItem(idx)} className="w-9 h-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Delete">
-                              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                              </svg>
-                            </button>
-                          </div>
-
-                          {isSubmenu && (
-                            <ul className="mt-3 ml-8 flex flex-col border-l-2 border-border pl-4">
-                              <DropLine show={dropChildLineIdx?.parent === idx && dropChildLineIdx?.idx === 0} />
-                              {(item.children ?? []).map((child, ci) => (
-                                <li key={ci} data-testid={`item-${idx}-child-${ci}`}>
-                                  <div
-                                    draggable
-                                    onDragStart={(e) => handleChildDragStart(e, idx, ci)}
-                                    onDragOver={(e) => handleChildDragOver(e, idx, ci)}
-                                    onDragEnd={(e) => handleChildDragEnd(e, idx)}
-                                    className="flex items-center gap-2 rounded-md p-1 cursor-grab active:cursor-grabbing active:opacity-50"
-                                  >
-                                    <span className="text-muted-foreground/40 hover:text-muted-foreground shrink-0 px-0.5" title="Drag to reorder">
-                                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M8.5 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm7 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                                      </svg>
-                                    </span>
-                                    <input
-                                      type="text"
-                                      data-testid={`item-${idx}-child-${ci}-label`}
-                                      value={child.label}
-                                      placeholder="Child object"
-                                      onChange={(e) => handleRenameChild(idx, ci, e.target.value)}
-                                      className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                    />
-                                    <button data-testid={`item-${idx}-child-${ci}-delete`} onClick={() => handleDeleteChild(idx, ci)} className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Delete">
-                                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                  <DropLine show={dropChildLineIdx?.parent === idx && dropChildLineIdx?.idx === ci + 1} />
-                                </li>
-                              ))}
-                              <button data-testid={`item-${idx}-add-child`} onClick={() => handleAddChild(idx)} className="self-start text-xs px-2 py-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors mt-1">
-                                + Add to submenu
-                              </button>
-                            </ul>
-                          )}
-                        </div>
-                        <DropLine show={dropLineIdx === idx + 1} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {totalItems} {totalItems === 1 ? "item" : "items"} across {locationItems.length}{" "}
+                {locationItems.length === 1 ? "location" : "locations"}
+              </p>
+              <button
+                onClick={() => setLocation("/admin/settings/qr-dictionary")}
+                className="text-xs text-primary hover:opacity-80 transition-opacity flex items-center gap-1"
+              >
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                </svg>
+                Manage in QR Code Dictionary
+              </button>
             </div>
 
-            <div className="flex items-center justify-end gap-3">
-              {saveMessage && (
-                <span data-testid="save-message" className={`text-sm font-medium ${saveMessage === "Saved" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                  {saveMessage}
-                </span>
-              )}
-              <button data-testid="reset" onClick={handleReset} disabled={!dirty || updateMutation.isPending} className="text-sm px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                Discard changes
-              </button>
-              <button data-testid="save" onClick={handleSave} disabled={!dirty || updateMutation.isPending} className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-                {updateMutation.isPending ? "Saving…" : "Save changes"}
-              </button>
+            <div className="flex flex-col gap-4">
+              {locationItems.map((loc) => (
+                <div key={loc.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      <span className="text-sm font-semibold text-foreground">{loc.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {loc.loading ? "…" : `${loc.codes.length} ${loc.codes.length === 1 ? "item" : "items"}`}
+                    </span>
+                  </div>
+
+                  {loc.loading ? (
+                    <div className="px-5 py-4 text-sm text-muted-foreground">Loading…</div>
+                  ) : loc.codes.length === 0 ? (
+                    <div className="px-5 py-4 text-sm text-muted-foreground italic">
+                      No calibrated QR codes in this location
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {loc.codes.map((code) => (
+                        <li key={code.qrValue} className="px-5 py-3 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0">
+                              {code.qrValue}
+                            </span>
+                            {code.hasName ? (
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {code.displayName}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground italic truncate">
+                                No name — shown as QR value
+                              </span>
+                            )}
+                          </div>
+                          {code.calibratedAt && (
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {new Date(code.calibratedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
             </div>
           </>
         )}
