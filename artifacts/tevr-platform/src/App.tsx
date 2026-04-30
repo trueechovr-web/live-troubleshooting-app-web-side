@@ -8,6 +8,7 @@ import TevrDashboard from "@/pages/tevr-dashboard";
 import AdminHome from "@/pages/admin-home";
 import AdminTroubleshoot from "@/pages/admin-troubleshoot";
 import AdminSession from "@/pages/admin-session";
+import AdminSettings from "@/pages/admin-settings";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/admin" component={AdminHome} />
       <Route path="/admin/troubleshoot" component={AdminTroubleshoot} />
       <Route path="/admin/session/:sessionId" component={AdminSession} />
+      <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/tech" component={TechPortal} />
       <Route path="/tech/session" component={TechSession} />
       <Route component={NotFound} />

@@ -55,6 +55,7 @@ Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 | `/admin` | Admin Home | Client Admin |
 | `/admin/troubleshoot` | Headset Selector | Client Admin |
 | `/admin/session/:sessionId` | Live Session (WebRTC + chat) | Client Admin |
+| `/admin/settings` | Account Settings (Point-to menu editor) | Client Admin |
 | `/tech` | Tech Portal | Client Tech |
 | `/tech/session?roomCode=&sessionId=` | Tech Live Stream | Client Tech |
 | `/tevr` | TEVR Ops Dashboard | TEVR Internal |
@@ -67,6 +68,13 @@ Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 - `offer` / `answer` / `ice-candidate` — WebRTC negotiation
 - `chat-message` — text chat
 - `point-to` — admin instructs headset to highlight a named object
+
+## Customer Settings (Point-to Menu)
+
+- `customers.pointToObjects` jsonb column stores `Array<{ label: string; children?: { label: string }[] }>` (one level of nesting).
+- Endpoint `PUT /api/customers/{customerId}/point-to-objects` replaces the menu (validation: 1-80 char labels, max 50 items / 50 children).
+- `/admin/settings` page edits the menu for the first customer (full multi-tenant scoping deferred — see follow-up tasks).
+- `/admin/session` renders the menu as `<select>` with `<optgroup>` blocks for submenus.
 
 ## Unity / Quest Integration
 

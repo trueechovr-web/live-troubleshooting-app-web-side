@@ -17,6 +17,14 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List all customers
  */
+export const listCustomersResponsePointToObjectsItemLabelMax = 80;
+
+export const listCustomersResponsePointToObjectsItemChildrenItemLabelMax = 80;
+
+export const listCustomersResponsePointToObjectsItemChildrenMax = 50;
+
+export const listCustomersResponsePointToObjectsMax = 50;
+
 export const ListCustomersResponseItem = zod.object({
   id: zod.string(),
   name: zod.string(),
@@ -25,6 +33,29 @@ export const ListCustomersResponseItem = zod.object({
   headsetCount: zod.number(),
   activeHeadsets: zod.number(),
   status: zod.enum(["active", "inactive", "trial"]),
+  pointToObjects: zod
+    .array(
+      zod.object({
+        label: zod
+          .string()
+          .min(1)
+          .max(listCustomersResponsePointToObjectsItemLabelMax),
+        children: zod
+          .array(
+            zod.object({
+              label: zod
+                .string()
+                .min(1)
+                .max(
+                  listCustomersResponsePointToObjectsItemChildrenItemLabelMax,
+                ),
+            }),
+          )
+          .max(listCustomersResponsePointToObjectsItemChildrenMax)
+          .optional(),
+      }),
+    )
+    .max(listCustomersResponsePointToObjectsMax),
   createdAt: zod.string(),
 });
 export const ListCustomersResponse = zod.array(ListCustomersResponseItem);
@@ -45,6 +76,14 @@ export const GetCustomerParams = zod.object({
   customerId: zod.coerce.string(),
 });
 
+export const getCustomerResponsePointToObjectsItemLabelMax = 80;
+
+export const getCustomerResponsePointToObjectsItemChildrenItemLabelMax = 80;
+
+export const getCustomerResponsePointToObjectsItemChildrenMax = 50;
+
+export const getCustomerResponsePointToObjectsMax = 50;
+
 export const GetCustomerResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
@@ -53,6 +92,102 @@ export const GetCustomerResponse = zod.object({
   headsetCount: zod.number(),
   activeHeadsets: zod.number(),
   status: zod.enum(["active", "inactive", "trial"]),
+  pointToObjects: zod
+    .array(
+      zod.object({
+        label: zod
+          .string()
+          .min(1)
+          .max(getCustomerResponsePointToObjectsItemLabelMax),
+        children: zod
+          .array(
+            zod.object({
+              label: zod
+                .string()
+                .min(1)
+                .max(getCustomerResponsePointToObjectsItemChildrenItemLabelMax),
+            }),
+          )
+          .max(getCustomerResponsePointToObjectsItemChildrenMax)
+          .optional(),
+      }),
+    )
+    .max(getCustomerResponsePointToObjectsMax),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Replace the customer's Point-to object menu
+ */
+export const UpdateCustomerPointToObjectsParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const updateCustomerPointToObjectsBodyLabelMax = 80;
+
+export const updateCustomerPointToObjectsBodyChildrenItemLabelMax = 80;
+
+export const updateCustomerPointToObjectsBodyChildrenMax = 50;
+
+export const UpdateCustomerPointToObjectsBodyItem = zod.object({
+  label: zod.string().min(1).max(updateCustomerPointToObjectsBodyLabelMax),
+  children: zod
+    .array(
+      zod.object({
+        label: zod
+          .string()
+          .min(1)
+          .max(updateCustomerPointToObjectsBodyChildrenItemLabelMax),
+      }),
+    )
+    .max(updateCustomerPointToObjectsBodyChildrenMax)
+    .optional(),
+});
+export const UpdateCustomerPointToObjectsBody = zod
+  .array(UpdateCustomerPointToObjectsBodyItem)
+  .max(50);
+
+export const updateCustomerPointToObjectsResponsePointToObjectsItemLabelMax = 80;
+
+export const updateCustomerPointToObjectsResponsePointToObjectsItemChildrenItemLabelMax = 80;
+
+export const updateCustomerPointToObjectsResponsePointToObjectsItemChildrenMax = 50;
+
+export const updateCustomerPointToObjectsResponsePointToObjectsMax = 50;
+
+export const UpdateCustomerPointToObjectsResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  contactEmail: zod.string(),
+  programVersion: zod.string(),
+  headsetCount: zod.number(),
+  activeHeadsets: zod.number(),
+  status: zod.enum(["active", "inactive", "trial"]),
+  pointToObjects: zod
+    .array(
+      zod.object({
+        label: zod
+          .string()
+          .min(1)
+          .max(updateCustomerPointToObjectsResponsePointToObjectsItemLabelMax),
+        children: zod
+          .array(
+            zod.object({
+              label: zod
+                .string()
+                .min(1)
+                .max(
+                  updateCustomerPointToObjectsResponsePointToObjectsItemChildrenItemLabelMax,
+                ),
+            }),
+          )
+          .max(
+            updateCustomerPointToObjectsResponsePointToObjectsItemChildrenMax,
+          )
+          .optional(),
+      }),
+    )
+    .max(updateCustomerPointToObjectsResponsePointToObjectsMax),
   createdAt: zod.string(),
 });
 

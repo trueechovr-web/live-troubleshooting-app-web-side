@@ -1,6 +1,21 @@
-import { pgTable, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+
+export type PointToChild = { label: string };
+export type PointToItem = { label: string; children?: PointToChild[] };
+export type PointToObjects = PointToItem[];
+
+export const DEFAULT_POINT_TO_OBJECTS: PointToObjects = [
+  { label: "Fire Extinguisher" },
+  { label: "Control Panel" },
+  { label: "Emergency Exit" },
+  { label: "Junction Box" },
+  { label: "Safety Valve" },
+  { label: "Power Switch" },
+  { label: "Circuit Breaker" },
+  { label: "Warning Label" },
+];
 
 export const customerStatusEnum = pgEnum("customer_status", ["active", "inactive", "trial"]);
 export const headsetStatusEnum = pgEnum("headset_status", ["online", "offline", "busy"]);
@@ -15,6 +30,7 @@ export const customersTable = pgTable("customers", {
   headsetCount: integer("headset_count").notNull().default(0),
   activeHeadsets: integer("active_headsets").notNull().default(0),
   status: customerStatusEnum("status").notNull().default("active"),
+  pointToObjects: jsonb("point_to_objects").$type<PointToObjects>().notNull().default(DEFAULT_POINT_TO_OBJECTS),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

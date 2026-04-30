@@ -25,6 +25,7 @@ import type {
   HealthStatus,
   ListHeadsetsParams,
   Message,
+  PointToObjects,
   SendMessageBody,
   Session,
 } from "./api.schemas";
@@ -360,6 +361,93 @@ export function useGetCustomer<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Replace the customer's Point-to object menu
+ */
+export const getUpdateCustomerPointToObjectsUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/point-to-objects`;
+};
+
+export const updateCustomerPointToObjects = async (
+  customerId: string,
+  pointToObjects: PointToObjects,
+  options?: RequestInit,
+): Promise<Customer> => {
+  return customFetch<Customer>(getUpdateCustomerPointToObjectsUrl(customerId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pointToObjects),
+  });
+};
+
+export const getUpdateCustomerPointToObjectsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerPointToObjects>>,
+    TError,
+    { customerId: string; data: BodyType<PointToObjects> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCustomerPointToObjects>>,
+  TError,
+  { customerId: string; data: BodyType<PointToObjects> },
+  TContext
+> => {
+  const mutationKey = ["updateCustomerPointToObjects"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCustomerPointToObjects>>,
+    { customerId: string; data: BodyType<PointToObjects> }
+  > = (props) => {
+    const { customerId, data } = props ?? {};
+
+    return updateCustomerPointToObjects(customerId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCustomerPointToObjectsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCustomerPointToObjects>>
+>;
+export type UpdateCustomerPointToObjectsMutationBody = BodyType<PointToObjects>;
+export type UpdateCustomerPointToObjectsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Replace the customer's Point-to object menu
+ */
+export const useUpdateCustomerPointToObjects = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerPointToObjects>>,
+    TError,
+    { customerId: string; data: BodyType<PointToObjects> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCustomerPointToObjects>>,
+  TError,
+  { customerId: string; data: BodyType<PointToObjects> },
+  TContext
+> => {
+  return useMutation(getUpdateCustomerPointToObjectsMutationOptions(options));
+};
 
 /**
  * @summary List available headsets

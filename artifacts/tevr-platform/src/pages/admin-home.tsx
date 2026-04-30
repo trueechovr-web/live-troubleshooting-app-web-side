@@ -26,10 +26,10 @@ const actions = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
-    path: null,
-    available: false,
-    colorClass: "text-muted-foreground bg-muted border-border",
-    ctaClass: "text-muted-foreground",
+    path: "/admin/settings",
+    available: true,
+    colorClass: "text-violet-600 bg-violet-50 border-violet-200 dark:text-violet-400 dark:bg-violet-950/50 dark:border-violet-900",
+    ctaClass: "text-violet-600 dark:text-violet-400",
   },
 ];
 

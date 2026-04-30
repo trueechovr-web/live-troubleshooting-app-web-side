@@ -1,20 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetSession, useListMessages, useSendMessage, useEndSession, getListMessagesQueryKey } from "@workspace/api-client-react";
+import { useGetSession, useListMessages, useSendMessage, useEndSession, useListCustomers, getListMessagesQueryKey } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const POINT_TO_OBJECTS = [
-  "Fire Extinguisher",
-  "Control Panel",
-  "Emergency Exit",
-  "Junction Box",
-  "Safety Valve",
-  "Power Switch",
-  "Circuit Breaker",
-  "Warning Label",
-];
 
 export default function AdminSession() {
   const [, params] = useRoute("/admin/session/:sessionId");
@@ -31,6 +20,8 @@ export default function AdminSession() {
   const [pointToConfirm, setPointToConfirm] = useState("");
 
   const session    = useGetSession(sessionId, { query: { enabled: !!sessionId } });
+  const customers  = useListCustomers();
+  const pointToObjects = customers.data?.[0]?.pointToObjects ?? [];
   const messages   = useListMessages(sessionId, {
     query: { enabled: !!sessionId, queryKey: getListMessagesQueryKey(sessionId), refetchInterval: 2000 },
   });
@@ -214,9 +205,17 @@ export default function AdminSession() {
                   className="bg-background border border-border rounded-lg px-5 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Point to object…</option>
-                  {POINT_TO_OBJECTS.map((obj) => (
-                    <option key={obj} value={obj}>{obj}</option>
-                  ))}
+                  {pointToObjects.map((item, idx) =>
+                    item.children && item.children.length > 0 ? (
+                      <optgroup key={`group-${idx}`} label={item.label || "Submenu"}>
+                        {item.children.map((child, ci) => (
+                          <option key={`${idx}-${ci}`} value={child.label}>{child.label}</option>
+                        ))}
+                      </optgroup>
+                    ) : (
+                      <option key={`item-${idx}`} value={item.label}>{item.label}</option>
+                    ),
+                  )}
                 </select>
               )}
               {pointToConfirm && !pointingTo && (

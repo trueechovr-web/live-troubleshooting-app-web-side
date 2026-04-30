@@ -18,6 +18,29 @@ export const CustomerStatus = {
   trial: "trial",
 } as const;
 
+export interface PointToChild {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  label: string;
+}
+
+export interface PointToItem {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  label: string;
+  /** @maxItems 50 */
+  children?: PointToChild[];
+}
+
+/**
+ * @maxItems 50
+ */
+export type PointToObjects = PointToItem[];
+
 export interface Customer {
   id: string;
   name: string;
@@ -26,6 +49,7 @@ export interface Customer {
   headsetCount: number;
   activeHeadsets: number;
   status: CustomerStatus;
+  pointToObjects: PointToObjects;
   createdAt: string;
 }
 

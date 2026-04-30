@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { customersTable, insertCustomerSchema } from "@workspace/db";
+import { UpdateCustomerPointToObjectsBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -42,6 +43,28 @@ router.get("/customers/:customerId", async (req, res) => {
     res.json(customer);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch customer" });
+  }
+});
+
+router.put("/customers/:customerId/point-to-objects", async (req, res) => {
+  try {
+    const parsed = UpdateCustomerPointToObjectsBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const [updated] = await db
+      .update(customersTable)
+      .set({ pointToObjects: parsed.data })
+      .where(eq(customersTable.id, req.params.customerId))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update point-to objects" });
   }
 });
 
