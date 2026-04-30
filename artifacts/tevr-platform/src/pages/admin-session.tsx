@@ -2,11 +2,10 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import {
   useGetSession, useListMessages, useSendMessage, useEndSession, useListCustomers,
-  getListMessagesQueryKey, useListLocations, useListQrDictionary,
-  getGetLocationQrCodesQueryOptions,
+  getListMessagesQueryKey, useListQrDictionary,
 } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
-import { useQueryClient, useQueries } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function AdminSession() {
@@ -20,16 +19,17 @@ export default function AdminSession() {
 
   const [messageInput, setMessageInput] = useState("");
   const [volume, setVolume] = useState(80);
-  const [pointingTo, setPointingTo] = useState("");
+  const [pointingToQr, setPointingToQr] = useState("");
   const [pointToConfirm, setPointToConfirm] = useState("");
   const [pointToPanelOpen, setPointToPanelOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const session    = useGetSession(sessionId, { query: { enabled: !!sessionId } });
-  const customers  = useListCustomers();
-  const customerId = customers.data?.[0]?.id ?? "";
+  const session   = useGetSession(sessionId, { query: { enabled: !!sessionId } });
+  const customers = useListCustomers();
+  const customer  = customers.data?.[0];
+  const customerId = customer?.id ?? "";
 
-  const locations  = useListLocations(customerId, { query: { enabled: !!customerId } });
+  const pointToObjects = customer?.pointToObjects ?? [];
   const dictionary = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
 
   const nameMap = useMemo(() => {
@@ -38,19 +38,26 @@ export default function AdminSession() {
     return map;
   }, [dictionary.data]);
 
-  const locationQrQueries = useQueries({
-    queries: (locations.data ?? []).map((loc) => getGetLocationQrCodesQueryOptions(loc.id)),
-  });
-
   const categories = useMemo(() => {
-    return (locations.data ?? [])
-      .map((loc, i) => {
-        const qrData = locationQrQueries[i]?.data;
-        const items = (qrData?.qrCodes ?? []).map((qr) => nameMap.get(qr.qrValue) ?? qr.qrValue);
-        return { id: loc.id, label: loc.name, items };
-      })
-      .filter((cat) => cat.items.length > 0);
-  }, [locations.data, locationQrQueries, nameMap]);
+    type CatItem = { qrValue: string; displayName: string };
+    type Cat = { id: string; label: string; items: CatItem[] };
+    const cats: Cat[] = [];
+
+    const ungrouped = pointToObjects
+      .filter((it) => !it.children?.length)
+      .map((it) => ({ qrValue: it.label, displayName: nameMap.get(it.label) ?? it.label }));
+    if (ungrouped.length > 0) cats.push({ id: "__ungrouped__", label: "Ungrouped", items: ungrouped });
+
+    for (const it of pointToObjects.filter((it) => it.children && it.children.length > 0)) {
+      cats.push({
+        id: it.label,
+        label: it.label,
+        items: it.children!.map((c) => ({ qrValue: c.label, displayName: nameMap.get(c.label) ?? c.label })),
+      });
+    }
+    return cats;
+  }, [pointToObjects, nameMap]);
+
   const messages   = useListMessages(sessionId, {
     query: { enabled: !!sessionId, queryKey: getListMessagesQueryKey(sessionId), refetchInterval: 2000 },
   });
@@ -78,16 +85,17 @@ export default function AdminSession() {
     );
   }, [messageInput, sessionId, sendMessage, queryClient]);
 
-  const handlePointTo = useCallback((obj: string) => {
-    setPointingTo(obj);
+  const handlePointTo = useCallback((qrValue: string) => {
+    setPointingToQr(qrValue);
     setPointToPanelOpen(false);
-    sendPointTo(obj);
-    setPointToConfirm(`Pointing to: ${obj}`);
+    sendPointTo(qrValue);
+    const name = nameMap.get(qrValue) ?? qrValue;
+    setPointToConfirm(`Pointing to: ${name}`);
     setTimeout(() => setPointToConfirm(""), 3000);
-  }, [sendPointTo]);
+  }, [sendPointTo, nameMap]);
 
   const handleClearPointTo = useCallback(() => {
-    setPointingTo("");
+    setPointingToQr("");
     sendPointTo("");
     setPointToConfirm("");
   }, [sendPointTo]);
@@ -95,6 +103,8 @@ export default function AdminSession() {
   const handleEndSession = useCallback(() => {
     endSession.mutate({ sessionId }, { onSuccess: () => setLocation("/admin/troubleshoot") });
   }, [sessionId, endSession, setLocation]);
+
+  const pointingToName = nameMap.get(pointingToQr) ?? pointingToQr;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -164,7 +174,7 @@ export default function AdminSession() {
             )}
           </div>
 
-          {/* Point-to picker panel — two-column tab navigator */}
+          {/* Point-to picker panel */}
           {pointToPanelOpen && (() => {
             const activeCatId = selectedCategory || categories[0]?.id || "";
             const activeCat = categories.find((c) => c.id === activeCatId) ?? categories[0];
@@ -188,10 +198,11 @@ export default function AdminSession() {
                 </div>
 
                 {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No calibrated QR codes available. Calibrate headsets from the QR Code Dictionary settings.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No categories configured. Set up categories in Point-to Object Menu settings.
+                  </p>
                 ) : (
                   <div className="flex flex-1 overflow-hidden">
-                    {/* Left: category tabs */}
                     <div className="w-44 shrink-0 border-r border-border overflow-y-auto bg-background">
                       {categories.map((cat) => {
                         const isActive = cat.id === activeCatId;
@@ -215,22 +226,21 @@ export default function AdminSession() {
                       })}
                     </div>
 
-                    {/* Right: items for selected category */}
                     <div className="flex-1 overflow-y-auto px-5 py-4">
                       {activeCat ? (
                         <div className="flex flex-wrap gap-2">
-                          {activeCat.items.map((label, i) => (
+                          {activeCat.items.map((item) => (
                             <button
-                              key={i}
-                              data-testid={`point-to-option-${i}`}
-                              onClick={() => handlePointTo(label)}
+                              key={item.qrValue}
+                              data-testid={`point-to-option-${item.qrValue}`}
+                              onClick={() => handlePointTo(item.qrValue)}
                               className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                                pointingTo === label
+                                pointingToQr === item.qrValue
                                   ? "bg-primary text-primary-foreground border-primary"
                                   : "bg-background border-border text-foreground hover:bg-muted"
                               }`}
                             >
-                              {label}
+                              {item.displayName}
                             </button>
                           ))}
                         </div>
@@ -291,13 +301,13 @@ export default function AdminSession() {
             </div>
 
             <div className="flex items-center gap-3 ml-auto">
-              {pointingTo ? (
+              {pointingToQr ? (
                 <button
                   data-testid="point-to-clear"
                   onClick={handleClearPointTo}
                   className="flex items-center gap-2.5 bg-primary text-primary-foreground border border-primary rounded-lg px-5 py-3 text-base font-medium hover:opacity-90 transition-opacity"
                 >
-                  <span>Pointing to: {pointingTo}</span>
+                  <span>Pointing to: {pointingToName}</span>
                   <span className="inline-flex items-center gap-1.5 pl-3 ml-1 border-l border-primary-foreground/30">
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -324,7 +334,7 @@ export default function AdminSession() {
                   </svg>
                 </button>
               )}
-              {pointToConfirm && !pointingTo && (
+              {pointToConfirm && !pointingToQr && (
                 <span className="text-sm text-primary font-medium">{pointToConfirm}</span>
               )}
             </div>
