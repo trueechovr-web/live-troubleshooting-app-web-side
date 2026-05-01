@@ -293,4 +293,25 @@ router.get("/customers/:customerId/session-history", async (req, res) => {
   }
 });
 
+router.get("/sessions/:sessionId/point-to-events", async (req, res) => {
+  try {
+    const events = await db
+      .select({
+        id: pointToEventsTable.id,
+        sessionId: pointToEventsTable.sessionId,
+        objectName: pointToEventsTable.objectName,
+        createdAt: pointToEventsTable.triggeredAt,
+      })
+      .from(pointToEventsTable)
+      .where(eq(pointToEventsTable.sessionId, req.params.sessionId))
+      .orderBy(pointToEventsTable.triggeredAt);
+    res.json(events.map((e) => ({
+      ...e,
+      createdAt: e.createdAt.toISOString(),
+    })));
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch point-to events" });
+  }
+});
+
 export default router;

@@ -66,7 +66,7 @@ export default function AdminSession() {
 
   const roomCode = session.data?.roomCode ?? "";
 
-  const { isConnected, toggleMic, toggleCamera, isMicOn, isCameraOn, sendPointTo } = useWebRTC({
+  const { isConnected, remoteStream, toggleMic, toggleCamera, isMicOn, isCameraOn, sendPointTo } = useWebRTC({
     roomCode, role: "admin", remoteVideoRef, localVideoRef,
   });
 
@@ -74,7 +74,7 @@ export default function AdminSession() {
   useDeepgramTranscription({
     sessionId,
     enabled: isConnected && sessionHistoryEnabled,
-    remoteVideoRef,
+    remoteStream,
   });
 
   useEffect(() => {

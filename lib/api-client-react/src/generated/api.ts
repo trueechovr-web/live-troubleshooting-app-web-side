@@ -35,6 +35,7 @@ import type {
   LocationQrData,
   LocationSummary,
   Message,
+  PointToEvent,
   PointToObjects,
   QrDictionaryEntry,
   SendMessageBody,
@@ -2392,6 +2393,98 @@ export const useSendMessage = <
 > => {
   return useMutation(getSendMessageMutationOptions(options));
 };
+
+/**
+ * @summary Get all point-to object events for a session
+ */
+export const getGetSessionPointToEventsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/point-to-events`;
+};
+
+export const getSessionPointToEvents = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<PointToEvent[]> => {
+  return customFetch<PointToEvent[]>(getGetSessionPointToEventsUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionPointToEventsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/point-to-events`] as const;
+};
+
+export const getGetSessionPointToEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionPointToEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionPointToEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionPointToEventsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionPointToEvents>>
+  > = ({ signal }) =>
+    getSessionPointToEvents(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionPointToEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionPointToEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionPointToEvents>>
+>;
+export type GetSessionPointToEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all point-to object events for a session
+ */
+
+export function useGetSessionPointToEvents<
+  TData = Awaited<ReturnType<typeof getSessionPointToEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionPointToEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionPointToEventsQueryOptions(
+    sessionId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Append a transcribed audio chunk to a session

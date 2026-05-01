@@ -8,7 +8,7 @@ const DEEPGRAM_WS_URL =
 interface UseDeepgramTranscriptionProps {
   sessionId: string;
   enabled: boolean;
-  remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
+  remoteStream: MediaStream | null;
 }
 
 function startDeepgramStream(
@@ -75,7 +75,7 @@ function startDeepgramStream(
 export function useDeepgramTranscription({
   sessionId,
   enabled,
-  remoteVideoRef,
+  remoteStream,
 }: UseDeepgramTranscriptionProps) {
   const appendChunk = useAppendTranscriptChunk();
   const cleanupRef = useRef<Array<() => void>>([]);
@@ -111,9 +111,8 @@ export function useDeepgramTranscription({
         console.warn("[Transcription] Could not get admin mic:", err);
       }
 
-      const remoteMediaStream = remoteVideoRef.current?.srcObject;
-      if (remoteMediaStream instanceof MediaStream) {
-        const audioTracks = remoteMediaStream.getAudioTracks();
+      if (remoteStream instanceof MediaStream) {
+        const audioTracks = remoteStream.getAudioTracks();
         if (audioTracks.length > 0) {
           const headsetStream = new MediaStream(audioTracks);
           const stopHeadset = startDeepgramStream(headsetStream, "tech", handleTranscript);
@@ -131,5 +130,5 @@ export function useDeepgramTranscription({
       cleanupRef.current.forEach((fn) => fn());
       cleanupRef.current = [];
     };
-  }, [enabled, sessionId, handleTranscript, remoteVideoRef]);
+  }, [enabled, sessionId, handleTranscript, remoteStream]);
 }

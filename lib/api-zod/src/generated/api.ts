@@ -645,6 +645,23 @@ export const SendMessageBody = zod.object({
 });
 
 /**
+ * @summary Get all point-to object events for a session
+ */
+export const GetSessionPointToEventsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const GetSessionPointToEventsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  objectName: zod.string(),
+  createdAt: zod.string(),
+});
+export const GetSessionPointToEventsResponse = zod.array(
+  GetSessionPointToEventsResponseItem,
+);
+
+/**
  * @summary Append a transcribed audio chunk to a session
  */
 export const AppendTranscriptChunkParams = zod.object({

@@ -12,7 +12,8 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
   const [isConnected, setIsConnected] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
-  
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+
   const socketRef = useRef<Socket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -106,6 +107,7 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
+        setRemoteStream(event.streams[0] ?? null);
       };
 
       pc.onconnectionstatechange = () => {
@@ -191,7 +193,7 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
   return {
     isConnected,
     localStream: localStreamRef.current,
-    remoteStream: remoteVideoRef.current?.srcObject as MediaStream | null,
+    remoteStream,
     toggleMic,
     toggleCamera,
     isMicOn,

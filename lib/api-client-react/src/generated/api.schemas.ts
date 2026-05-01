@@ -289,6 +289,13 @@ export interface SessionHistoryItem {
   summary?: string;
 }
 
+export interface PointToEvent {
+  id: string;
+  sessionId: string;
+  objectName: string;
+  createdAt: string;
+}
+
 export type DeleteLocation200 = {
   ok: boolean;
 };
