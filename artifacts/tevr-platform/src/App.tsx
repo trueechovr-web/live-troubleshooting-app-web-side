@@ -13,6 +13,7 @@ import AdminSettings from "@/pages/admin-settings";
 import AdminPointToObjects from "@/pages/admin-point-to-objects";
 import AdminQrDictionary from "@/pages/admin-qr-dictionary";
 import AdminQrLocation from "@/pages/admin-qr-location";
+import AdminSessionHistory from "@/pages/admin-session-history";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
 
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/tevr/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
       <Route path="/tevr/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
       <Route path="/tevr/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+      <Route path="/tevr/:customerId/session-history" component={AdminSessionHistory} />
 
       {/* Client Admin */}
       <Route path="/admin" component={ClientList} />
@@ -49,6 +51,7 @@ function Router() {
       <Route path="/admin/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
       <Route path="/admin/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
       <Route path="/admin/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+      <Route path="/admin/:customerId/session-history" component={AdminSessionHistory} />
 
       {/* Field Tech */}
       <Route path="/tech" component={TechPortal} />

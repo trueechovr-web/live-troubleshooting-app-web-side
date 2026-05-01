@@ -11,6 +11,8 @@ export default function AdminHome() {
 
   const customerName = customer.data?.name ?? "Loading…";
 
+  const sessionHistoryEnabled = customer.data?.sessionHistoryEnabled ?? false;
+
   const actions = [
     {
       id: "troubleshoot",
@@ -41,6 +43,20 @@ export default function AdminHome() {
       colorClass: "text-violet-600 bg-violet-50 border-violet-200 dark:text-violet-400 dark:bg-violet-950/50 dark:border-violet-900",
       ctaClass: "text-violet-600 dark:text-violet-400",
     },
+    ...(sessionHistoryEnabled ? [{
+      id: "session-history",
+      title: "Session History",
+      description: "Browse past support sessions and read AI-generated summaries of each call.",
+      icon: (
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      path: `${base}/${customerId}/session-history`,
+      available: true,
+      colorClass: "text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/50 dark:border-amber-900",
+      ctaClass: "text-amber-600 dark:text-amber-400",
+    }] : []),
   ];
 
   const backPath = isTevrMode ? "/tevr" : "/admin";

@@ -55,16 +55,22 @@ Multi-client routing with `/:customerId` in all admin sub-routes:
 | `/admin/:customerId/settings/point-to-objects` | `AdminPointToObjects` |
 | `/admin/:customerId/settings/qr-dictionary` | `AdminQrDictionary` |
 | `/admin/:customerId/settings/qr-dictionary/:locationId` | `AdminQrLocation` |
+| `/admin/:customerId/session-history` | `AdminSessionHistory` |
+| `/tevr/:customerId/session-history` | `AdminSessionHistory` |
 
 All admin pages use `useParams<{ customerId }>()` from wouter and `useGetCustomer(customerId)` (not `useListCustomers()[0]`). The TEVR dashboard (`/tevr`) customer rows are also clickable and navigate to `/admin/:customerId`.
 
 ## Database Schema
 
-Tables: `customers`, `headsets`, `sessions`, `messages`, `locations`, `qr_codes`, `qr_dictionary`
+Tables: `customers`, `headsets`, `sessions`, `messages`, `locations`, `qr_codes`, `qr_dictionary`, `point_to_events`
 
 - `locations` — named physical sites per customer
 - `qr_codes` — spatial calibration data (position x/y/z, rotation x/y/z/w) per location, pushed by Meta Quest headsets
 - `qr_dictionary` — company-wide QR value → name mapping per customer
+- `point_to_events` — persisted log of point-to object events per session (objectName, timestamp)
+- `sessions.transcript` — full transcript text built from appended chunks (when Session History enabled)
+- `sessions.summary` — AI-generated summary created async when session ends (when Session History enabled)
+- `customers.sessionHistoryEnabled` — boolean premium feature flag per customer
 
 Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 
@@ -107,7 +113,18 @@ Seeded with: 5 customers, 10 headsets (mix of online/offline/busy)
 - **Calibration flow**: Unity app → user selects location → taps Start Calibration → scans QR codes → taps Stop Calibration → Unity calls `PUT /api/locations/{locationId}/qr-codes` with `{ headsetId, qrCodes: [{qrValue, position, rotation}] }` — atomically replaces existing data.
 - **Headset app-start sync**: `GET /api/headsets/{headsetId}/startup-data?locationId=…` — returns merged spatial QR data (with names resolved from dictionary) plus the full name dictionary. Called by Unity when the app starts.
 
+### Session History (Premium Feature)
+- `customers.sessionHistoryEnabled` boolean toggled by TEVR admins in `/tevr/:id/settings` → Premium Features section
+- When enabled: admin-session page starts dual-stream Deepgram transcription (admin mic + headset audio) using raw WebSocket to `wss://api.deepgram.com/v1/listen` (requires `VITE_DEEPGRAM_API_KEY` env var)
+- Each transcript chunk is POSTed to `POST /api/sessions/:id/transcript-chunk` which appends to `sessions.transcript`
+- When session ends (DELETE /api/sessions/:id), AI summary generated via OpenAI fire-and-forget (requires `OPENAI_API_KEY` env var); written to `sessions.summary`
+- Session History page (`/tevr/:id/session-history` or `/admin/:id/session-history`) shows completed sessions with AI summaries
+- Session History card appears on admin home only when `sessionHistoryEnabled` is true
+
 ### API routes
+- `PUT /api/customers/{id}/feature-flags` — toggle sessionHistoryEnabled
+- `GET /api/customers/{id}/session-history` — returns [] when feature disabled or no sessions
+- `POST /api/sessions/{id}/transcript-chunk` — append transcript chunk { speaker, text }
 - `GET/POST /api/customers/{id}/locations` — list / create locations
 - `DELETE /api/customers/{id}/locations/{locationId}` — delete location + cascade QR codes
 - `GET /api/locations/{id}/qr-codes` — get calibration data

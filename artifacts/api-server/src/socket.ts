@@ -1,6 +1,10 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { logger } from "./lib/logger";
+import { db } from "@workspace/db";
+import { pointToEventsTable, sessionsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 interface RoomPeer {
   socketId: string;
@@ -62,6 +66,19 @@ export function setupSocketIO(httpServer: HttpServer) {
 
     socket.on("point-to", ({ roomCode, objectName }: { roomCode: string; objectName: string }) => {
       socket.to(roomCode).emit("point-to", { objectName });
+      if (objectName) {
+        db.select({ id: sessionsTable.id })
+          .from(sessionsTable)
+          .where(eq(sessionsTable.roomCode, roomCode))
+          .then(([session]) => {
+            if (session) {
+              db.insert(pointToEventsTable)
+                .values({ id: randomUUID(), sessionId: session.id, objectName })
+                .catch((err) => logger.error({ err }, "Failed to persist point-to event"));
+            }
+          })
+          .catch((err) => logger.error({ err }, "Failed to look up session for point-to event"));
+      }
     });
 
     socket.on("disconnect", () => {

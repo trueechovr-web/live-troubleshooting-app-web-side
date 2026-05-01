@@ -5,6 +5,7 @@ import {
   getListMessagesQueryKey, useListQrDictionary,
 } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
+import { useDeepgramTranscription } from "@/hooks/useDeepgramTranscription";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePortalMode } from "@/hooks/usePortalMode";
@@ -67,6 +68,13 @@ export default function AdminSession() {
 
   const { isConnected, toggleMic, toggleCamera, isMicOn, isCameraOn, sendPointTo } = useWebRTC({
     roomCode, role: "admin", remoteVideoRef, localVideoRef,
+  });
+
+  const sessionHistoryEnabled = customer.data?.sessionHistoryEnabled ?? false;
+  useDeepgramTranscription({
+    sessionId,
+    enabled: isConnected && sessionHistoryEnabled,
+    remoteVideoRef,
   });
 
   useEffect(() => {

@@ -1,8 +1,43 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { sessionsTable, messagesTable, headsetsTable, insertSessionSchema, insertMessageSchema } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { sessionsTable, messagesTable, headsetsTable, customersTable, pointToEventsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import OpenAI from "openai";
+
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+async function generateSessionSummary(
+  transcript: string | null,
+  pointToEvents: { objectName: string; triggeredAt: Date }[],
+): Promise<string | null> {
+  if (!openai) return null;
+  if (!transcript && pointToEvents.length === 0) return null;
+
+  const pointToPart =
+    pointToEvents.length > 0
+      ? `Objects highlighted during the session: ${pointToEvents.map((e) => e.objectName).join(", ")}.`
+      : "No objects were highlighted during this session.";
+
+  const transcriptPart = transcript
+    ? `\n\nSession transcript:\n${transcript}`
+    : "\n\nNo audio transcript was captured for this session.";
+
+  const prompt = `You are summarizing a VR remote assistance support session. Write a 2-3 sentence plain-English summary describing what was discussed and any objects that were inspected or pointed to. Be concise and factual.\n\n${pointToPart}${transcriptPart}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 200,
+    });
+    return response.choices[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const router = Router();
 
@@ -114,6 +149,34 @@ router.delete("/sessions/:sessionId", async (req, res) => {
 
     const [headset] = await db.select().from(headsetsTable).where(eq(headsetsTable.id, session.headsetId));
     res.json(formatSession({ ...session, headsetLabel: headset?.label }));
+
+    // Generate AI summary asynchronously (after response is sent)
+    const [headsetWithCustomer] = await db
+      .select({ customerId: headsetsTable.customerId })
+      .from(headsetsTable)
+      .where(eq(headsetsTable.id, session.headsetId));
+
+    if (headsetWithCustomer) {
+      const [customer] = await db
+        .select({ sessionHistoryEnabled: customersTable.sessionHistoryEnabled })
+        .from(customersTable)
+        .where(eq(customersTable.id, headsetWithCustomer.customerId));
+
+      if (customer?.sessionHistoryEnabled) {
+        const pointToEvents = await db
+          .select()
+          .from(pointToEventsTable)
+          .where(eq(pointToEventsTable.sessionId, req.params.sessionId));
+
+        const summary = await generateSessionSummary(session.transcript, pointToEvents);
+        if (summary) {
+          await db
+            .update(sessionsTable)
+            .set({ summary })
+            .where(eq(sessionsTable.id, req.params.sessionId));
+        }
+      }
+    }
   } catch (err) {
     res.status(500).json({ error: "Failed to end session" });
   }
@@ -154,6 +217,79 @@ router.post("/sessions/:sessionId/messages", async (req, res) => {
     res.status(201).json({ ...message, sentAt: message.sentAt?.toISOString() });
   } catch (err) {
     res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+router.post("/sessions/:sessionId/transcript-chunk", async (req, res) => {
+  try {
+    const { speaker, text } = req.body as { speaker: "admin" | "tech"; text: string };
+    if (!speaker || !text?.trim()) {
+      res.status(400).json({ error: "speaker and text are required" });
+      return;
+    }
+    const chunk = `[${speaker.toUpperCase()}] ${text.trim()}`;
+    await db
+      .update(sessionsTable)
+      .set({ transcript: sql`coalesce(${sessionsTable.transcript}, '') || ${"\n" + chunk}` })
+      .where(eq(sessionsTable.id, req.params.sessionId));
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to append transcript chunk" });
+  }
+});
+
+router.get("/customers/:customerId/session-history", async (req, res) => {
+  try {
+    const [customer] = await db
+      .select({ sessionHistoryEnabled: customersTable.sessionHistoryEnabled })
+      .from(customersTable)
+      .where(eq(customersTable.id, req.params.customerId));
+
+    if (!customer) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+
+    if (!customer.sessionHistoryEnabled) {
+      res.json([]);
+      return;
+    }
+
+    const rows = await db
+      .select({
+        id: sessionsTable.id,
+        headsetId: sessionsTable.headsetId,
+        headsetLabel: headsetsTable.label,
+        startedAt: sessionsTable.startedAt,
+        endedAt: sessionsTable.endedAt,
+        summary: sessionsTable.summary,
+      })
+      .from(sessionsTable)
+      .leftJoin(headsetsTable, eq(sessionsTable.headsetId, headsetsTable.id))
+      .where(eq(headsetsTable.customerId, req.params.customerId))
+      .orderBy(sql`${sessionsTable.startedAt} desc`);
+
+    const items = rows
+      .filter((r) => r.endedAt !== null)
+      .map((r) => {
+        const durationSeconds =
+          r.endedAt && r.startedAt
+            ? Math.round((r.endedAt.getTime() - r.startedAt.getTime()) / 1000)
+            : null;
+        return {
+          id: r.id,
+          headsetId: r.headsetId,
+          headsetLabel: r.headsetLabel ?? r.headsetId,
+          startedAt: r.startedAt.toISOString(),
+          endedAt: r.endedAt!.toISOString(),
+          durationSeconds,
+          summary: r.summary ?? null,
+        };
+      });
+
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch session history" });
   }
 });
 

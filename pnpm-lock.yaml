@@ -184,6 +184,9 @@ importers:
       express:
         specifier: ^5
         version: 5.2.1
+      openai:
+        specifier: ^6.35.0
+        version: 6.35.0(ws@8.20.0)(zod@4.3.6)
       pino:
         specifier: ^9
         version: 9.14.0
@@ -404,6 +407,9 @@ importers:
 
   artifacts/tevr-platform:
     dependencies:
+      '@deepgram/sdk':
+        specifier: ^5.1.0
+        version: 5.1.0
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -746,6 +752,10 @@ packages:
 
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
+
+  '@deepgram/sdk@5.1.0':
+    resolution: {integrity: sha512-pw4JsFLglvIAjk1C4rALHYBW5dHt30d3j25jsJhvoexTziLSTBK9LJlpeml/UDwHMILu4ZbBs3o0ZsF9DaHuZQ==}
+    engines: {node: '>=18.0.0'}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -2575,6 +2585,18 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
+  openai@6.35.0:
+    resolution: {integrity: sha512-L/skwIGnt5xQZHb0UfTu9uAUKbis3ehKypOuJKi20QvG7UStV6C8IC3myGYHcdiF4kms/bAvOJ9UqqNWqi8x/Q==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   orval@8.5.3:
     resolution: {integrity: sha512-+8Es2ZR3tPthzAL27X1a9AlboqTQ/w9U/PhMkp4vsLA9OvdkpXr+9f8lCfJUV/wtdX+lXBDQ4imx42Em943JSg==}
     engines: {node: '>=22.18.0'}
@@ -3212,6 +3234,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.20.0:
+    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xmlhttprequest-ssl@2.1.2:
     resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
     engines: {node: '>=0.4.0'}
@@ -3363,6 +3397,13 @@ snapshots:
       commander: 14.0.3
 
   '@date-fns/tz@1.4.1': {}
+
+  '@deepgram/sdk@5.1.0':
+    dependencies:
+      ws: 8.20.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@drizzle-team/brocli@0.10.2': {}
 
@@ -5207,6 +5248,11 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
+  openai@6.35.0(ws@8.20.0)(zod@4.3.6):
+    optionalDependencies:
+      ws: 8.20.0
+      zod: 4.3.6
+
   orval@8.5.3(prettier@3.8.1)(typescript@5.9.3):
     dependencies:
       '@commander-js/extra-typings': 14.0.0(commander@14.0.3)
@@ -5854,6 +5900,8 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.18.3: {}
+
+  ws@8.20.0: {}
 
   xmlhttprequest-ssl@2.1.2: {}
 

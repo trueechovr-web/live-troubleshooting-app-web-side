@@ -50,6 +50,7 @@ export interface Customer {
   activeHeadsets: number;
   status: CustomerStatus;
   pointToObjects: PointToObjects;
+  sessionHistoryEnabled: boolean;
   createdAt: string;
 }
 
@@ -259,6 +260,33 @@ export interface DashboardSummary {
   activeHeadsets: number;
   activeSessions: number;
   customersByStatus: DashboardSummaryCustomersByStatus;
+}
+
+export interface UpdateFeatureFlagsBody {
+  sessionHistoryEnabled: boolean;
+}
+
+export type TranscriptChunkBodySpeaker =
+  (typeof TranscriptChunkBodySpeaker)[keyof typeof TranscriptChunkBodySpeaker];
+
+export const TranscriptChunkBodySpeaker = {
+  admin: "admin",
+  tech: "tech",
+} as const;
+
+export interface TranscriptChunkBody {
+  speaker: TranscriptChunkBodySpeaker;
+  text: string;
+}
+
+export interface SessionHistoryItem {
+  id: string;
+  headsetId: string;
+  headsetLabel: string;
+  startedAt: string;
+  endedAt?: string;
+  durationSeconds?: number;
+  summary?: string;
 }
 
 export type DeleteLocation200 = {

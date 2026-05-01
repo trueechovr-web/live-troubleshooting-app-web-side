@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum, jsonb, doublePrecision, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, pgEnum, jsonb, doublePrecision, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -31,6 +31,7 @@ export const customersTable = pgTable("customers", {
   activeHeadsets: integer("active_headsets").notNull().default(0),
   status: customerStatusEnum("status").notNull().default("active"),
   pointToObjects: jsonb("point_to_objects").$type<PointToObjects>().notNull().default(DEFAULT_POINT_TO_OBJECTS),
+  sessionHistoryEnabled: boolean("session_history_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -62,6 +63,8 @@ export const sessionsTable = pgTable("sessions", {
   roomCode: text("room_code").notNull(),
   startedAt: timestamp("started_at").notNull().defaultNow(),
   endedAt: timestamp("ended_at"),
+  transcript: text("transcript"),
+  summary: text("summary"),
 });
 
 export const insertSessionSchema = createInsertSchema(sessionsTable).omit({ startedAt: true, endedAt: true });
@@ -128,3 +131,15 @@ export const qrDictionaryTable = pgTable(
 export const insertQrDictionarySchema = createInsertSchema(qrDictionaryTable).omit({ updatedAt: true });
 export type InsertQrDictionary = z.infer<typeof insertQrDictionarySchema>;
 export type QrDictionaryEntry = typeof qrDictionaryTable.$inferSelect;
+
+/* ── Point-to Events (persisted during live sessions) ── */
+export const pointToEventsTable = pgTable("point_to_events", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => sessionsTable.id),
+  objectName: text("object_name").notNull(),
+  triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
+});
+
+export const insertPointToEventSchema = createInsertSchema(pointToEventsTable).omit({ triggeredAt: true });
+export type InsertPointToEvent = z.infer<typeof insertPointToEventSchema>;
+export type PointToEvent = typeof pointToEventsTable.$inferSelect;

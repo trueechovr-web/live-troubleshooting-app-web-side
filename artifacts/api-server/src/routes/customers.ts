@@ -4,7 +4,6 @@ import { customersTable, insertCustomerSchema } from "@workspace/db";
 import { UpdateCustomerPointToObjectsBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
-
 const router = Router();
 
 router.get("/customers", async (_req, res) => {
@@ -65,6 +64,28 @@ router.put("/customers/:customerId/point-to-objects", async (req, res) => {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: "Failed to update point-to objects" });
+  }
+});
+
+router.put("/customers/:customerId/feature-flags", async (req, res) => {
+  try {
+    const body = req.body as { sessionHistoryEnabled?: unknown };
+    if (typeof body.sessionHistoryEnabled !== "boolean") {
+      res.status(400).json({ error: "sessionHistoryEnabled must be a boolean" });
+      return;
+    }
+    const [updated] = await db
+      .update(customersTable)
+      .set({ sessionHistoryEnabled: body.sessionHistoryEnabled })
+      .where(eq(customersTable.id, req.params.customerId))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update feature flags" });
   }
 });
 

@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@deepgram/sdk": "^5.1.0",
     "socket.io-client": "^4.8.3"
   }
 }

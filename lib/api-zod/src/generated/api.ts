@@ -56,6 +56,7 @@ export const ListCustomersResponseItem = zod.object({
       }),
     )
     .max(listCustomersResponsePointToObjectsMax),
+  sessionHistoryEnabled: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListCustomersResponse = zod.array(ListCustomersResponseItem);
@@ -113,6 +114,7 @@ export const GetCustomerResponse = zod.object({
       }),
     )
     .max(getCustomerResponsePointToObjectsMax),
+  sessionHistoryEnabled: zod.boolean(),
   createdAt: zod.string(),
 });
 
@@ -188,8 +190,83 @@ export const UpdateCustomerPointToObjectsResponse = zod.object({
       }),
     )
     .max(updateCustomerPointToObjectsResponsePointToObjectsMax),
+  sessionHistoryEnabled: zod.boolean(),
   createdAt: zod.string(),
 });
+
+/**
+ * @summary Enable or disable premium features for a customer
+ */
+export const UpdateCustomerFeatureFlagsParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const UpdateCustomerFeatureFlagsBody = zod.object({
+  sessionHistoryEnabled: zod.boolean(),
+});
+
+export const updateCustomerFeatureFlagsResponsePointToObjectsItemLabelMax = 80;
+
+export const updateCustomerFeatureFlagsResponsePointToObjectsItemChildrenItemLabelMax = 80;
+
+export const updateCustomerFeatureFlagsResponsePointToObjectsItemChildrenMax = 50;
+
+export const updateCustomerFeatureFlagsResponsePointToObjectsMax = 50;
+
+export const UpdateCustomerFeatureFlagsResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  contactEmail: zod.string(),
+  programVersion: zod.string(),
+  headsetCount: zod.number(),
+  activeHeadsets: zod.number(),
+  status: zod.enum(["active", "inactive", "trial"]),
+  pointToObjects: zod
+    .array(
+      zod.object({
+        label: zod
+          .string()
+          .min(1)
+          .max(updateCustomerFeatureFlagsResponsePointToObjectsItemLabelMax),
+        children: zod
+          .array(
+            zod.object({
+              label: zod
+                .string()
+                .min(1)
+                .max(
+                  updateCustomerFeatureFlagsResponsePointToObjectsItemChildrenItemLabelMax,
+                ),
+            }),
+          )
+          .max(updateCustomerFeatureFlagsResponsePointToObjectsItemChildrenMax)
+          .optional(),
+      }),
+    )
+    .max(updateCustomerFeatureFlagsResponsePointToObjectsMax),
+  sessionHistoryEnabled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Get session history with AI summaries for a customer
+ */
+export const GetSessionHistoryParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const GetSessionHistoryResponseItem = zod.object({
+  id: zod.string(),
+  headsetId: zod.string(),
+  headsetLabel: zod.string(),
+  startedAt: zod.string(),
+  endedAt: zod.string().optional(),
+  durationSeconds: zod.number().optional(),
+  summary: zod.string().optional(),
+});
+export const GetSessionHistoryResponse = zod.array(
+  GetSessionHistoryResponseItem,
+);
 
 /**
  * @summary List all locations for a customer
@@ -565,6 +642,18 @@ export const SendMessageParams = zod.object({
 export const SendMessageBody = zod.object({
   senderRole: zod.enum(["admin", "tech"]),
   content: zod.string(),
+});
+
+/**
+ * @summary Append a transcribed audio chunk to a session
+ */
+export const AppendTranscriptChunkParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const AppendTranscriptChunkBody = zod.object({
+  speaker: zod.enum(["admin", "tech"]),
+  text: zod.string(),
 });
 
 /**

@@ -112,6 +112,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/Customer"
 
+  /customers/{customerId}/feature-flags:
+    put:
+      operationId: updateCustomerFeatureFlags
+      tags: [customers]
+      summary: Enable or disable premium features for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFeatureFlagsBody"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /customers/{customerId}/session-history:
+    get:
+      operationId: getSessionHistory
+      tags: [sessions]
+      summary: Get session history with AI summaries for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of ended sessions with summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionHistoryItem"
+
   /customers/{customerId}/locations:
     get:
       operationId: listLocations
@@ -533,6 +579,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/Message"
 
+  /sessions/{sessionId}/transcript-chunk:
+    post:
+      operationId: appendTranscriptChunk
+      tags: [sessions]
+      summary: Append a transcribed audio chunk to a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranscriptChunkBody"
+      responses:
+        "204":
+          description: Chunk appended
+
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -575,9 +642,11 @@ components:
           enum: [active, inactive, trial]
         pointToObjects:
           $ref: "#/components/schemas/PointToObjects"
+        sessionHistoryEnabled:
+          type: boolean
         createdAt:
           type: string
-      required: [id, name, contactEmail, programVersion, headsetCount, activeHeadsets, status, pointToObjects, createdAt]
+      required: [id, name, contactEmail, programVersion, headsetCount, activeHeadsets, status, pointToObjects, sessionHistoryEnabled, createdAt]
 
     PointToChild:
       type: object
@@ -912,3 +981,39 @@ components:
               type: integer
           required: [active, inactive, trial]
       required: [totalCustomers, totalHeadsets, activeHeadsets, activeSessions, customersByStatus]
+
+    UpdateFeatureFlagsBody:
+      type: object
+      properties:
+        sessionHistoryEnabled:
+          type: boolean
+      required: [sessionHistoryEnabled]
+
+    TranscriptChunkBody:
+      type: object
+      properties:
+        speaker:
+          type: string
+          enum: [admin, tech]
+        text:
+          type: string
+      required: [speaker, text]
+
+    SessionHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        headsetId:
+          type: string
+        headsetLabel:
+          type: string
+        startedAt:
+          type: string
+        endedAt:
+          type: string
+        durationSeconds:
+          type: integer
+        summary:
+          type: string
+      required: [id, headsetId, headsetLabel, startedAt]

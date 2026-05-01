@@ -1,13 +1,28 @@
 import { useParams, useLocation } from "wouter";
-import { useGetCustomer } from "@workspace/api-client-react";
+import { useGetCustomer, useUpdateCustomerFeatureFlags } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePortalMode } from "@/hooks/usePortalMode";
+import { useQueryClient } from "@tanstack/react-query";
+import { getGetCustomerQueryKey } from "@workspace/api-client-react";
 
 export default function AdminSettings() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const { isTevrMode, base } = usePortalMode();
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
+  const queryClient = useQueryClient();
+  const updateFeatureFlags = useUpdateCustomerFeatureFlags();
+
+  const handleToggleSessionHistory = (enabled: boolean) => {
+    updateFeatureFlags.mutate(
+      { customerId, data: { sessionHistoryEnabled: enabled } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(customerId) });
+        },
+      },
+    );
+  };
 
   const sections = [
     {
@@ -42,6 +57,7 @@ export default function AdminSettings() {
   ];
 
   const headerSubtitle = isTevrMode ? "TEVR Operations" : "Account Settings";
+  const sessionHistoryEnabled = customer.data?.sessionHistoryEnabled ?? false;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -72,36 +88,75 @@ export default function AdminSettings() {
         <ThemeToggle />
       </header>
 
-      <div className="px-6 py-8 max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-xl font-semibold text-foreground mb-1">Account Settings</h1>
-          <p className="text-sm text-muted-foreground">Select a section to configure.</p>
+      <div className="px-6 py-8 max-w-4xl mx-auto space-y-10">
+        <div>
+          <div className="mb-8">
+            <h1 className="text-xl font-semibold text-foreground mb-1">Account Settings</h1>
+            <p className="text-sm text-muted-foreground">Select a section to configure.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                data-testid={`section-${section.id}`}
+                onClick={() => setLocation(section.path)}
+                className="group flex flex-col gap-5 rounded-xl border border-border bg-card p-7 text-left shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+              >
+                <div className={`w-11 h-11 rounded-lg flex items-center justify-center border ${section.colorClass}`}>
+                  {section.icon}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-foreground mb-1.5">{section.title}</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{section.description}</p>
+                </div>
+                <div className={`flex items-center gap-1 text-sm font-medium ${section.ctaClass}`}>
+                  <span>Open</span>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              data-testid={`section-${section.id}`}
-              onClick={() => setLocation(section.path)}
-              className="group flex flex-col gap-5 rounded-xl border border-border bg-card p-7 text-left shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-            >
-              <div className={`w-11 h-11 rounded-lg flex items-center justify-center border ${section.colorClass}`}>
-                {section.icon}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-base font-semibold text-foreground mb-1.5">{section.title}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">{section.description}</p>
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-medium ${section.ctaClass}`}>
-                <span>Open</span>
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </div>
-            </button>
-          ))}
-        </div>
+        {isTevrMode && (
+          <div>
+            <div className="mb-5">
+              <h2 className="text-base font-semibold text-foreground mb-1">Premium Features</h2>
+              <p className="text-sm text-muted-foreground">Enable or disable paid add-ons for this customer. Changes take effect immediately.</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <label className="flex items-start gap-4 cursor-pointer group">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    data-testid="toggle-session-history"
+                    checked={sessionHistoryEnabled}
+                    disabled={updateFeatureFlags.isPending || customer.isLoading}
+                    onChange={(e) => handleToggleSessionHistory(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className={`w-11 h-6 rounded-full border-2 transition-colors peer-disabled:opacity-50 ${sessionHistoryEnabled ? "bg-primary border-primary" : "bg-muted border-border"}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm mt-0.5 transition-transform ${sessionHistoryEnabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">Session History &amp; AI Summaries</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-medium border border-amber-200 dark:border-amber-800">
+                      Premium
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    Enables real-time audio transcription during live sessions and AI-generated summaries when sessions end. Session History becomes visible in the client portal.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

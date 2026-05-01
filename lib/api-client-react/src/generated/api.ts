@@ -39,6 +39,9 @@ import type {
   QrDictionaryEntry,
   SendMessageBody,
   Session,
+  SessionHistoryItem,
+  TranscriptChunkBody,
+  UpdateFeatureFlagsBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -459,6 +462,186 @@ export const useUpdateCustomerPointToObjects = <
 > => {
   return useMutation(getUpdateCustomerPointToObjectsMutationOptions(options));
 };
+
+/**
+ * @summary Enable or disable premium features for a customer
+ */
+export const getUpdateCustomerFeatureFlagsUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/feature-flags`;
+};
+
+export const updateCustomerFeatureFlags = async (
+  customerId: string,
+  updateFeatureFlagsBody: UpdateFeatureFlagsBody,
+  options?: RequestInit,
+): Promise<Customer> => {
+  return customFetch<Customer>(getUpdateCustomerFeatureFlagsUrl(customerId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateFeatureFlagsBody),
+  });
+};
+
+export const getUpdateCustomerFeatureFlagsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerFeatureFlags>>,
+    TError,
+    { customerId: string; data: BodyType<UpdateFeatureFlagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCustomerFeatureFlags>>,
+  TError,
+  { customerId: string; data: BodyType<UpdateFeatureFlagsBody> },
+  TContext
+> => {
+  const mutationKey = ["updateCustomerFeatureFlags"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCustomerFeatureFlags>>,
+    { customerId: string; data: BodyType<UpdateFeatureFlagsBody> }
+  > = (props) => {
+    const { customerId, data } = props ?? {};
+
+    return updateCustomerFeatureFlags(customerId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCustomerFeatureFlagsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCustomerFeatureFlags>>
+>;
+export type UpdateCustomerFeatureFlagsMutationBody =
+  BodyType<UpdateFeatureFlagsBody>;
+export type UpdateCustomerFeatureFlagsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enable or disable premium features for a customer
+ */
+export const useUpdateCustomerFeatureFlags = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerFeatureFlags>>,
+    TError,
+    { customerId: string; data: BodyType<UpdateFeatureFlagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCustomerFeatureFlags>>,
+  TError,
+  { customerId: string; data: BodyType<UpdateFeatureFlagsBody> },
+  TContext
+> => {
+  return useMutation(getUpdateCustomerFeatureFlagsMutationOptions(options));
+};
+
+/**
+ * @summary Get session history with AI summaries for a customer
+ */
+export const getGetSessionHistoryUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/session-history`;
+};
+
+export const getSessionHistory = async (
+  customerId: string,
+  options?: RequestInit,
+): Promise<SessionHistoryItem[]> => {
+  return customFetch<SessionHistoryItem[]>(
+    getGetSessionHistoryUrl(customerId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSessionHistoryQueryKey = (customerId: string) => {
+  return [`/api/customers/${customerId}/session-history`] as const;
+};
+
+export const getGetSessionHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionHistoryQueryKey(customerId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionHistory>>
+  > = ({ signal }) =>
+    getSessionHistory(customerId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!customerId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionHistory>>
+>;
+export type GetSessionHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get session history with AI summaries for a customer
+ */
+
+export function useGetSessionHistory<
+  TData = Awaited<ReturnType<typeof getSessionHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionHistoryQueryOptions(customerId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List all locations for a customer
@@ -2208,6 +2391,93 @@ export const useSendMessage = <
   TContext
 > => {
   return useMutation(getSendMessageMutationOptions(options));
+};
+
+/**
+ * @summary Append a transcribed audio chunk to a session
+ */
+export const getAppendTranscriptChunkUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/transcript-chunk`;
+};
+
+export const appendTranscriptChunk = async (
+  sessionId: string,
+  transcriptChunkBody: TranscriptChunkBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAppendTranscriptChunkUrl(sessionId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(transcriptChunkBody),
+  });
+};
+
+export const getAppendTranscriptChunkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appendTranscriptChunk>>,
+    TError,
+    { sessionId: string; data: BodyType<TranscriptChunkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof appendTranscriptChunk>>,
+  TError,
+  { sessionId: string; data: BodyType<TranscriptChunkBody> },
+  TContext
+> => {
+  const mutationKey = ["appendTranscriptChunk"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof appendTranscriptChunk>>,
+    { sessionId: string; data: BodyType<TranscriptChunkBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return appendTranscriptChunk(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AppendTranscriptChunkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof appendTranscriptChunk>>
+>;
+export type AppendTranscriptChunkMutationBody = BodyType<TranscriptChunkBody>;
+export type AppendTranscriptChunkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Append a transcribed audio chunk to a session
+ */
+export const useAppendTranscriptChunk = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appendTranscriptChunk>>,
+    TError,
+    { sessionId: string; data: BodyType<TranscriptChunkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof appendTranscriptChunk>>,
+  TError,
+  { sessionId: string; data: BodyType<TranscriptChunkBody> },
+  TContext
+> => {
+  return useMutation(getAppendTranscriptChunkMutationOptions(options));
 };
 
 /**
