@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
-  useListCustomers,
   useGetLocationQrCodes,
   useClearLocationQrCodes,
   useListQrDictionary,
@@ -24,12 +23,8 @@ function relativeTime(iso: string) {
 
 export default function AdminQrLocation() {
   const [, setLocation] = useLocation();
-  const { locationId } = useParams<{ locationId: string }>();
+  const { customerId = "", locationId = "" } = useParams<{ customerId: string; locationId: string }>();
   const queryClient = useQueryClient();
-
-  const customers = useListCustomers();
-  const customer = customers.data?.[0];
-  const customerId = customer?.id ?? "";
 
   const qrData = useGetLocationQrCodes(locationId);
   const dictQuery = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
@@ -55,7 +50,7 @@ export default function AdminQrLocation() {
     }
   };
 
-  const isLoading = customers.isLoading || qrData.isLoading;
+  const isLoading = qrData.isLoading;
   const location = qrData.data;
   const qrCodes = location?.qrCodes ?? [];
 
@@ -65,7 +60,7 @@ export default function AdminQrLocation() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-qr-dictionary"
-            onClick={() => setLocation("/admin/settings/qr-dictionary")}
+            onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -80,7 +75,7 @@ export default function AdminQrLocation() {
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/50">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
-          <button onClick={() => setLocation("/admin/settings/qr-dictionary")} className="text-muted-foreground text-sm hover:text-foreground transition-colors">
+          <button onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)} className="text-muted-foreground text-sm hover:text-foreground transition-colors">
             QR Code Dictionary
           </button>
           {location && (

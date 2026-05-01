@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useListHeadsets, useCreateSession } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -32,6 +32,7 @@ function BatteryIcon({ level }: { level: number }) {
 }
 
 export default function AdminTroubleshoot() {
+  const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const [connecting, setConnecting] = useState<string | null>(null);
 
@@ -46,7 +47,7 @@ export default function AdminTroubleshoot() {
     createSession.mutate(
       { data: { headsetId, role: "admin" } },
       {
-        onSuccess: (session) => setLocation(`/admin/session/${session.id}`),
+        onSuccess: (session) => setLocation(`/admin/${customerId}/session/${session.id}`),
         onError: () => setConnecting(null),
       }
     );
@@ -58,7 +59,7 @@ export default function AdminTroubleshoot() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-admin"
-            onClick={() => setLocation("/admin")}
+            onClick={() => setLocation(`/admin/${customerId}`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import TevrDashboard from "@/pages/tevr-dashboard";
+import ClientList from "@/pages/client-list";
 import AdminHome from "@/pages/admin-home";
 import AdminTroubleshoot from "@/pages/admin-troubleshoot";
 import AdminSession from "@/pages/admin-session";
@@ -29,13 +30,14 @@ function Router() {
     <Switch>
       <Route path="/" component={LoginPage} />
       <Route path="/tevr" component={TevrDashboard} />
-      <Route path="/admin" component={AdminHome} />
-      <Route path="/admin/troubleshoot" component={AdminTroubleshoot} />
-      <Route path="/admin/session/:sessionId" component={AdminSession} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/settings/point-to-objects" component={AdminPointToObjects} />
-      <Route path="/admin/settings/qr-dictionary" component={AdminQrDictionary} />
-      <Route path="/admin/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+      <Route path="/admin" component={ClientList} />
+      <Route path="/admin/:customerId" component={AdminHome} />
+      <Route path="/admin/:customerId/troubleshoot" component={AdminTroubleshoot} />
+      <Route path="/admin/:customerId/session/:sessionId" component={AdminSession} />
+      <Route path="/admin/:customerId/settings" component={AdminSettings} />
+      <Route path="/admin/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
+      <Route path="/admin/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
+      <Route path="/admin/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
       <Route path="/tech" component={TechPortal} />
       <Route path="/tech/session" component={TechSession} />
       <Route component={NotFound} />

@@ -91,7 +91,8 @@ export default function TevrDashboard() {
                     <tr
                       key={c.id}
                       data-testid={`customer-row-${c.id}`}
-                      className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                      onClick={() => setLocation(`/admin/${c.id}`)}
+                      className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-4">
                         <p className="font-medium text-foreground">{c.name}</p>

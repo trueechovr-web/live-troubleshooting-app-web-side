@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useParams, useLocation } from "wouter";
 import {
-  useGetSession, useListMessages, useSendMessage, useEndSession, useListCustomers,
+  useGetSession, useListMessages, useSendMessage, useEndSession, useGetCustomer,
   getListMessagesQueryKey, useListQrDictionary,
 } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
@@ -9,9 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function AdminSession() {
-  const [, params] = useRoute("/admin/session/:sessionId");
+  const { customerId = "", sessionId = "" } = useParams<{ customerId: string; sessionId: string }>();
   const [, setLocation] = useLocation();
-  const sessionId = params?.sessionId ?? "";
   const queryClient = useQueryClient();
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -24,12 +23,10 @@ export default function AdminSession() {
   const [pointToPanelOpen, setPointToPanelOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const session   = useGetSession(sessionId, { query: { enabled: !!sessionId } });
-  const customers = useListCustomers();
-  const customer  = customers.data?.[0];
-  const customerId = customer?.id ?? "";
+  const session  = useGetSession(sessionId, { query: { enabled: !!sessionId } });
+  const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
 
-  const pointToObjects = customer?.pointToObjects ?? [];
+  const pointToObjects = customer.data?.pointToObjects ?? [];
   const dictionary = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
 
   const nameMap = useMemo(() => {
@@ -101,7 +98,7 @@ export default function AdminSession() {
   }, [sendPointTo]);
 
   const handleEndSession = useCallback(() => {
-    endSession.mutate({ sessionId }, { onSuccess: () => setLocation("/admin/troubleshoot") });
+    endSession.mutate({ sessionId }, { onSuccess: () => setLocation(`/admin/${customerId}/troubleshoot`) });
   }, [sessionId, endSession, setLocation]);
 
   const pointingToName = nameMap.get(pointingToQr) ?? pointingToQr;
@@ -112,7 +109,7 @@ export default function AdminSession() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-troubleshoot"
-            onClick={() => setLocation("/admin/troubleshoot")}
+            onClick={() => setLocation(`/admin/${customerId}/troubleshoot`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

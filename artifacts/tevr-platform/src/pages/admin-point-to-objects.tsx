@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation } from "wouter";
+import { useParams, useLocation } from "wouter";
 import {
-  useListCustomers,
+  useGetCustomer,
   useUpdateCustomerPointToObjects,
   getGetCustomerQueryKey,
-  getListCustomersQueryKey,
   useListLocations,
   useListQrDictionary,
   getGetLocationQrCodesQueryOptions,
@@ -22,12 +21,11 @@ function DropLine({ show }: { show: boolean }) {
 }
 
 export default function AdminPointToObjects() {
+  const { customerId = "" } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const customers = useListCustomers();
-  const customer  = customers.data?.[0];
-  const customerId = customer?.id ?? "";
+  const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
 
   const [items, setItems] = useState<PointToItem[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -66,8 +64,8 @@ export default function AdminPointToObjects() {
   const qrLoadingDone = locationQrQueries.every((q) => !q.isLoading);
 
   useEffect(() => {
-    if (customer && !dirty) setItems(customer.pointToObjects ?? []);
-  }, [customer, dirty]);
+    if (customer.data && !dirty) setItems(customer.data.pointToObjects ?? []);
+  }, [customer.data, dirty]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -139,7 +137,7 @@ export default function AdminPointToObjects() {
 
   /* ── Save / reset ── */
   const handleSave = () => {
-    if (!customer) return;
+    if (!customerId) return;
     const cleaned: PointToItem[] = items
       .map((it) => {
         const label = it.label.trim();
@@ -153,14 +151,13 @@ export default function AdminPointToObjects() {
     if (dupe) { setSaveMessage(`Duplicate category: "${dupe}"`); return; }
 
     updateMutation.mutate(
-      { customerId: customer.id, data: cleaned },
+      { customerId, data: cleaned },
       {
         onSuccess: () => {
           setItems(cleaned);
           setDirty(false);
           setSaveMessage("Saved");
-          queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(customer.id) });
+          queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(customerId) });
           setTimeout(() => setSaveMessage(""), 2500);
         },
         onError: () => setSaveMessage("Failed to save"),
@@ -169,10 +166,10 @@ export default function AdminPointToObjects() {
   };
 
   const handleReset = () => {
-    if (customer) { setItems(customer.pointToObjects ?? []); setDirty(false); setSaveMessage(""); setPickerForCat(null); }
+    if (customer.data) { setItems(customer.data.pointToObjects ?? []); setDirty(false); setSaveMessage(""); setPickerForCat(null); }
   };
 
-  const isLoading = customers.isLoading || locations.isLoading;
+  const isLoading = customer.isLoading || locations.isLoading;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -180,7 +177,7 @@ export default function AdminPointToObjects() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-settings"
-            onClick={() => setLocation("/admin/settings")}
+            onClick={() => setLocation(`/admin/${customerId}/settings`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -208,7 +205,7 @@ export default function AdminPointToObjects() {
             each category — during a call the categories appear on the left and the selected QR codes
             appear on the right. Manage QR code names in{" "}
             <button
-              onClick={() => setLocation("/admin/settings/qr-dictionary")}
+              onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)}
               className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
             >
               QR Code Dictionary
@@ -219,7 +216,7 @@ export default function AdminPointToObjects() {
 
         {isLoading ? (
           <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading…</div>
-        ) : !customer ? (
+        ) : !customer.data ? (
           <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">No customer account found.</div>
         ) : (
           <>
@@ -231,7 +228,7 @@ export default function AdminPointToObjects() {
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   No calibrated QR codes found. Headsets must scan and calibrate QR codes before they
                   can be assigned to categories. Set up locations in{" "}
-                  <button onClick={() => setLocation("/admin/settings/qr-dictionary")} className="underline underline-offset-1 hover:opacity-80">
+                  <button onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)} className="underline underline-offset-1 hover:opacity-80">
                     QR Code Dictionary
                   </button>
                   .
@@ -242,7 +239,7 @@ export default function AdminPointToObjects() {
             <div className="rounded-xl border border-border bg-card p-5 mb-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">{customer.name}</p>
+                  <p className="text-sm font-medium text-foreground">{customer.data?.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {items.length} {items.length === 1 ? "category" : "categories"}
                   </p>

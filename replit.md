@@ -41,6 +41,23 @@ pnpm workspace monorepo using TypeScript. Key packages:
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## Client Admin Routing
+
+Multi-client routing with `/:customerId` in all admin sub-routes:
+
+| Route | Component |
+|---|---|
+| `/admin` | `ClientList` — lists all TEVR customers as clickable cards |
+| `/admin/:customerId` | `AdminHome` — per-client admin portal |
+| `/admin/:customerId/troubleshoot` | `AdminTroubleshoot` |
+| `/admin/:customerId/session/:sessionId` | `AdminSession` |
+| `/admin/:customerId/settings` | `AdminSettings` |
+| `/admin/:customerId/settings/point-to-objects` | `AdminPointToObjects` |
+| `/admin/:customerId/settings/qr-dictionary` | `AdminQrDictionary` |
+| `/admin/:customerId/settings/qr-dictionary/:locationId` | `AdminQrLocation` |
+
+All admin pages use `useParams<{ customerId }>()` from wouter and `useGetCustomer(customerId)` (not `useListCustomers()[0]`). The TEVR dashboard (`/tevr`) customer rows are also clickable and navigate to `/admin/:customerId`.
+
 ## Database Schema
 
 Tables: `customers`, `headsets`, `sessions`, `messages`, `locations`, `qr_codes`, `qr_dictionary`
