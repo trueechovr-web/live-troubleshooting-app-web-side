@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useListHeadsets, useCreateSession } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { usePortalMode } from "@/hooks/usePortalMode";
 
 const statusConfig = {
   online:  { label: "Ready",   className: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/50 dark:border-emerald-900" },
@@ -34,6 +35,7 @@ function BatteryIcon({ level }: { level: number }) {
 export default function AdminTroubleshoot() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const headsets = useListHeadsets();
@@ -47,11 +49,13 @@ export default function AdminTroubleshoot() {
     createSession.mutate(
       { data: { headsetId, role: "admin" } },
       {
-        onSuccess: (session) => setLocation(`/admin/${customerId}/session/${session.id}`),
+        onSuccess: (session) => setLocation(`${base}/${customerId}/session/${session.id}`),
         onError: () => setConnecting(null),
       }
     );
   };
+
+  const headerSubtitle = isTevrMode ? "TEVR Operations" : "Troubleshoot";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -59,7 +63,7 @@ export default function AdminTroubleshoot() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-admin"
-            onClick={() => setLocation(`/admin/${customerId}`)}
+            onClick={() => setLocation(`${base}/${customerId}`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -70,7 +74,7 @@ export default function AdminTroubleshoot() {
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Troubleshoot</span>
+          <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <div className="flex items-center gap-3">
           {availableHeadsets.length > 0 && (

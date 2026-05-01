@@ -7,10 +7,12 @@ import {
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { usePortalMode } from "@/hooks/usePortalMode";
 
 export default function AdminSession() {
   const { customerId = "", sessionId = "" } = useParams<{ customerId: string; sessionId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
   const queryClient = useQueryClient();
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -98,7 +100,7 @@ export default function AdminSession() {
   }, [sendPointTo]);
 
   const handleEndSession = useCallback(() => {
-    endSession.mutate({ sessionId }, { onSuccess: () => setLocation(`/admin/${customerId}/troubleshoot`) });
+    endSession.mutate({ sessionId }, { onSuccess: () => setLocation(`${base}/${customerId}/troubleshoot`) });
   }, [sessionId, endSession, setLocation]);
 
   const pointingToName = nameMap.get(pointingToQr) ?? pointingToQr;
@@ -109,7 +111,7 @@ export default function AdminSession() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-troubleshoot"
-            onClick={() => setLocation(`/admin/${customerId}/troubleshoot`)}
+            onClick={() => setLocation(`${base}/${customerId}/troubleshoot`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -120,7 +122,9 @@ export default function AdminSession() {
             <div className="w-2 h-2 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Live Session</span>
+          <span className="text-muted-foreground text-sm">
+            {isTevrMode ? `TEVR Admin · ${customer.data?.name ?? ""}` : "Live Session"}
+          </span>
         </div>
 
         <div className="flex items-center gap-4">

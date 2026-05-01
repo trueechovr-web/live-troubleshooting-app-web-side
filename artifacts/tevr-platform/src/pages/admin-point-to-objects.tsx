@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
+import { usePortalMode } from "@/hooks/usePortalMode";
 import {
   useGetCustomer,
   useUpdateCustomerPointToObjects,
@@ -23,6 +24,7 @@ function DropLine({ show }: { show: boolean }) {
 export default function AdminPointToObjects() {
   const { customerId = "" } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
   const queryClient = useQueryClient();
 
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
@@ -177,7 +179,7 @@ export default function AdminPointToObjects() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-settings"
-            onClick={() => setLocation(`/admin/${customerId}/settings`)}
+            onClick={() => setLocation(`${base}/${customerId}/settings`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -188,7 +190,7 @@ export default function AdminPointToObjects() {
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Account Settings</span>
+          <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Account Settings"}</span>
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/50">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
@@ -205,7 +207,7 @@ export default function AdminPointToObjects() {
             each category — during a call the categories appear on the left and the selected QR codes
             appear on the right. Manage QR code names in{" "}
             <button
-              onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)}
+              onClick={() => setLocation(`${base}/${customerId}/settings/qr-dictionary`)}
               className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
             >
               QR Code Dictionary
@@ -228,7 +230,7 @@ export default function AdminPointToObjects() {
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   No calibrated QR codes found. Headsets must scan and calibrate QR codes before they
                   can be assigned to categories. Set up locations in{" "}
-                  <button onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary`)} className="underline underline-offset-1 hover:opacity-80">
+                  <button onClick={() => setLocation(`${base}/${customerId}/settings/qr-dictionary`)} className="underline underline-offset-1 hover:opacity-80">
                     QR Code Dictionary
                   </button>
                   .

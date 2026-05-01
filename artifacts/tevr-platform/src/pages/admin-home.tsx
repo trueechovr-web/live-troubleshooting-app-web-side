@@ -1,11 +1,15 @@
 import { useParams, useLocation } from "wouter";
 import { useGetCustomer } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { usePortalMode } from "@/hooks/usePortalMode";
 
 export default function AdminHome() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
+
+  const customerName = customer.data?.name ?? "Loading…";
 
   const actions = [
     {
@@ -17,7 +21,7 @@ export default function AdminHome() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
         </svg>
       ),
-      path: `/admin/${customerId}/troubleshoot`,
+      path: `${base}/${customerId}/troubleshoot`,
       available: true,
       colorClass: "text-blue-600 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950/50 dark:border-blue-900",
       ctaClass: "text-blue-600 dark:text-blue-400",
@@ -32,23 +36,24 @@ export default function AdminHome() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      path: `/admin/${customerId}/settings`,
+      path: `${base}/${customerId}/settings`,
       available: true,
       colorClass: "text-violet-600 bg-violet-50 border-violet-200 dark:text-violet-400 dark:bg-violet-950/50 dark:border-violet-900",
       ctaClass: "text-violet-600 dark:text-violet-400",
     },
   ];
 
-  const customerName = customer.data?.name ?? "Loading…";
+  const backPath = isTevrMode ? "/tevr" : "/admin";
+  const headerSubtitle = isTevrMode ? `TEVR Admin · ${customerName}` : "Client Admin";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setLocation("/admin")}
+            onClick={() => setLocation(backPath)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Back to client list"
+            aria-label="Back"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -58,7 +63,7 @@ export default function AdminHome() {
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Client Admin</span>
+          <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />

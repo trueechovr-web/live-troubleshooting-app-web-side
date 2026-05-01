@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
+import { usePortalMode } from "@/hooks/usePortalMode";
 import {
   useListLocations,
   useCreateLocation,
@@ -45,6 +46,7 @@ function relativeTime(iso: string) {
 export default function AdminQrDictionary() {
   const { customerId = "" } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
   const queryClient = useQueryClient();
 
   const locationsQuery = useListLocations(customerId, { query: { enabled: !!customerId } });
@@ -166,7 +168,7 @@ export default function AdminQrDictionary() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-settings"
-            onClick={() => setLocation(`/admin/${customerId}/settings`)}
+            onClick={() => setLocation(`${base}/${customerId}/settings`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -177,7 +179,7 @@ export default function AdminQrDictionary() {
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Account Settings</span>
+          <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Account Settings"}</span>
           <Breadcrumb label="QR Code Dictionary" />
         </div>
         <ThemeToggle />
@@ -307,7 +309,7 @@ export default function AdminQrDictionary() {
                     {(locationsQuery.data ?? []).map((loc) => (
                       <li key={loc.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                         <button
-                          onClick={() => setLocation(`/admin/${customerId}/settings/qr-dictionary/${loc.id}`)}
+                          onClick={() => setLocation(`${base}/${customerId}/settings/qr-dictionary/${loc.id}`)}
                           className="flex-1 flex items-center gap-3 text-left group"
                         >
                           <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/50 dark:border-emerald-900 flex items-center justify-center shrink-0">

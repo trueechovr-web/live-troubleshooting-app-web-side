@@ -29,7 +29,18 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LoginPage} />
+
+      {/* TEVR Admin Operations */}
       <Route path="/tevr" component={TevrDashboard} />
+      <Route path="/tevr/:customerId" component={AdminHome} />
+      <Route path="/tevr/:customerId/troubleshoot" component={AdminTroubleshoot} />
+      <Route path="/tevr/:customerId/session/:sessionId" component={AdminSession} />
+      <Route path="/tevr/:customerId/settings" component={AdminSettings} />
+      <Route path="/tevr/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
+      <Route path="/tevr/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
+      <Route path="/tevr/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+
+      {/* Client Admin */}
       <Route path="/admin" component={ClientList} />
       <Route path="/admin/:customerId" component={AdminHome} />
       <Route path="/admin/:customerId/troubleshoot" component={AdminTroubleshoot} />
@@ -38,8 +49,11 @@ function Router() {
       <Route path="/admin/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
       <Route path="/admin/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
       <Route path="/admin/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+
+      {/* Field Tech */}
       <Route path="/tech" component={TechPortal} />
       <Route path="/tech/session" component={TechSession} />
+
       <Route component={NotFound} />
     </Switch>
   );

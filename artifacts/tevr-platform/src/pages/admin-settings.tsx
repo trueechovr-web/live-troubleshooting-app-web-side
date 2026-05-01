@@ -1,9 +1,11 @@
 import { useParams, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { usePortalMode } from "@/hooks/usePortalMode";
 
 export default function AdminSettings() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
+  const { isTevrMode, base } = usePortalMode();
 
   const sections = [
     {
@@ -16,7 +18,7 @@ export default function AdminSettings() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
         </svg>
       ),
-      path: `/admin/${customerId}/settings/point-to-objects`,
+      path: `${base}/${customerId}/settings/point-to-objects`,
       colorClass: "text-violet-600 bg-violet-50 border-violet-200 dark:text-violet-400 dark:bg-violet-950/50 dark:border-violet-900",
       ctaClass: "text-violet-600 dark:text-violet-400",
     },
@@ -31,11 +33,13 @@ export default function AdminSettings() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
         </svg>
       ),
-      path: `/admin/${customerId}/settings/qr-dictionary`,
+      path: `${base}/${customerId}/settings/qr-dictionary`,
       colorClass: "text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/50 dark:border-emerald-900",
       ctaClass: "text-emerald-600 dark:text-emerald-400",
     },
   ];
+
+  const headerSubtitle = isTevrMode ? "TEVR Operations" : "Account Settings";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -43,7 +47,7 @@ export default function AdminSettings() {
         <div className="flex items-center gap-3">
           <button
             data-testid="back-to-admin"
-            onClick={() => setLocation(`/admin/${customerId}`)}
+            onClick={() => setLocation(`${base}/${customerId}`)}
             className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -54,7 +58,7 @@ export default function AdminSettings() {
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
-          <span className="text-muted-foreground text-sm">Account Settings</span>
+          <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <ThemeToggle />
       </header>
