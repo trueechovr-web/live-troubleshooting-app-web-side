@@ -101,7 +101,7 @@ export default function AdminSession() {
 
   const handleEndSession = useCallback(() => {
     endSession.mutate({ sessionId }, { onSuccess: () => setLocation(`${base}/${customerId}/troubleshoot`) });
-  }, [sessionId, endSession, setLocation]);
+  }, [sessionId, endSession, setLocation, base, customerId]);
 
   const pointingToName = nameMap.get(pointingToQr) ?? pointingToQr;
 
