@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { sessionsTable, messagesTable, headsetsTable, customersTable, pointToEventsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import OpenAI from "openai";
 
@@ -227,7 +227,8 @@ router.post("/sessions/:sessionId/transcript-chunk", async (req, res) => {
       res.status(400).json({ error: "speaker and text are required" });
       return;
     }
-    const chunk = `[${speaker.toUpperCase()}] ${text.trim()}`;
+    const timestamp = new Date().toISOString();
+    const chunk = `[${speaker.toUpperCase()} ${timestamp}] ${text.trim()}`;
     await db
       .update(sessionsTable)
       .set({ transcript: sql`coalesce(${sessionsTable.transcript}, '') || ${"\n" + chunk}` })
@@ -266,26 +267,29 @@ router.get("/customers/:customerId/session-history", async (req, res) => {
       })
       .from(sessionsTable)
       .leftJoin(headsetsTable, eq(sessionsTable.headsetId, headsetsTable.id))
-      .where(eq(headsetsTable.customerId, req.params.customerId))
+      .where(
+        and(
+          eq(headsetsTable.customerId, req.params.customerId),
+          eq(sessionsTable.status, "ended"),
+        )
+      )
       .orderBy(sql`${sessionsTable.startedAt} desc`);
 
-    const items = rows
-      .filter((r) => r.endedAt !== null)
-      .map((r) => {
-        const durationSeconds =
-          r.endedAt && r.startedAt
-            ? Math.round((r.endedAt.getTime() - r.startedAt.getTime()) / 1000)
-            : null;
-        return {
-          id: r.id,
-          headsetId: r.headsetId,
-          headsetLabel: r.headsetLabel ?? r.headsetId,
-          startedAt: r.startedAt.toISOString(),
-          endedAt: r.endedAt!.toISOString(),
-          durationSeconds,
-          summary: r.summary ?? null,
-        };
-      });
+    const items = rows.map((r) => {
+      const durationSeconds =
+        r.endedAt && r.startedAt
+          ? Math.round((r.endedAt.getTime() - r.startedAt.getTime()) / 1000)
+          : null;
+      return {
+        id: r.id,
+        headsetId: r.headsetId,
+        headsetLabel: r.headsetLabel ?? r.headsetId,
+        startedAt: r.startedAt.toISOString(),
+        endedAt: r.endedAt?.toISOString() ?? null,
+        durationSeconds,
+        summary: r.summary ?? null,
+      };
+    });
 
     res.json(items);
   } catch (err) {
