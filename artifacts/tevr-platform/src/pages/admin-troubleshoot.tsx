@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useListHeadsets, useCreateSession } from "@workspace/api-client-react";
+import { useListHeadsets, useCreateSession, useGetCustomer } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePortalMode } from "@/hooks/usePortalMode";
 
@@ -36,6 +36,7 @@ export default function AdminTroubleshoot() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const { isTevrMode, base } = usePortalMode();
+  const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const headsets = useListHeadsets();
@@ -73,7 +74,9 @@ export default function AdminTroubleshoot() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">True Echo VR</span>
+          <span className="font-semibold text-foreground">
+            {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
+          </span>
           <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <div className="flex items-center gap-3">

@@ -121,7 +121,9 @@ export default function AdminSession() {
           <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
             <div className="w-2 h-2 rounded-sm bg-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">True Echo VR</span>
+          <span className="font-semibold text-foreground">
+            {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
+          </span>
           <span className="text-muted-foreground text-sm">
             {isTevrMode ? `TEVR Admin — ${customer.data?.name ?? "Loading…"}` : "Live Session"}
           </span>

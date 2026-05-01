@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { usePortalMode } from "@/hooks/usePortalMode";
 import {
+  useGetCustomer,
   useGetLocationQrCodes,
   useClearLocationQrCodes,
   useListQrDictionary,
@@ -28,6 +29,7 @@ export default function AdminQrLocation() {
   const { isTevrMode, base } = usePortalMode();
   const queryClient = useQueryClient();
 
+  const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
   const qrData = useGetLocationQrCodes(locationId);
   const dictQuery = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
   const clearMutation = useClearLocationQrCodes();
@@ -72,7 +74,9 @@ export default function AdminQrLocation() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">True Echo VR</span>
+          <span className="font-semibold text-foreground">
+            {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
+          </span>
           <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Account Settings"}</span>
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/50">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

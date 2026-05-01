@@ -62,7 +62,9 @@ export default function AdminHome() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">True Echo VR</span>
+          <span className="font-semibold text-foreground">
+            {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
+          </span>
           <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <div className="flex items-center gap-3">

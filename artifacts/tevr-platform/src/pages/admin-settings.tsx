@@ -1,4 +1,5 @@
 import { useParams, useLocation } from "wouter";
+import { useGetCustomer } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePortalMode } from "@/hooks/usePortalMode";
 
@@ -6,6 +7,7 @@ export default function AdminSettings() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const { isTevrMode, base } = usePortalMode();
+  const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
 
   const sections = [
     {
@@ -57,7 +59,9 @@ export default function AdminSettings() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">True Echo VR</span>
+          <span className="font-semibold text-foreground">
+            {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
+          </span>
           <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
         </div>
         <ThemeToggle />
