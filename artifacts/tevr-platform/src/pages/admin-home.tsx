@@ -44,7 +44,7 @@ export default function AdminHome() {
   ];
 
   const backPath = isTevrMode ? "/tevr" : "/admin";
-  const headerSubtitle = isTevrMode ? `TEVR Admin · ${customerName}` : "Client Admin";
+  const headerSubtitle = isTevrMode ? "TEVR Operations" : "Client Admin";
 
   return (
     <div className="min-h-screen bg-background text-foreground">

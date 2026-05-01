@@ -123,7 +123,7 @@ export default function AdminSession() {
           </div>
           <span className="font-semibold text-foreground">True Echo VR</span>
           <span className="text-muted-foreground text-sm">
-            {isTevrMode ? `TEVR Admin · ${customer.data?.name ?? ""}` : "Live Session"}
+            {isTevrMode ? `TEVR Admin — ${customer.data?.name ?? "Loading…"}` : "Live Session"}
           </span>
         </div>
 
