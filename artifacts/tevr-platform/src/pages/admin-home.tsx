@@ -66,6 +66,11 @@ export default function AdminHome() {
             {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
           </span>
           <span className="text-muted-foreground text-sm">{headerSubtitle}</span>
+          {isTevrMode && customer.data?.name && (
+            <span className="ml-1 px-3 py-1 rounded-lg bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-sm font-bold border border-red-200 dark:border-red-800 tracking-wide">
+              {customer.data.name}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />

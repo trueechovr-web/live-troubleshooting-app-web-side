@@ -78,6 +78,11 @@ export default function AdminQrLocation() {
             {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
           </span>
           <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Account Settings"}</span>
+          {isTevrMode && customer.data?.name && (
+            <span className="ml-1 px-3 py-1 rounded-lg bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-sm font-bold border border-red-200 dark:border-red-800 tracking-wide">
+              {customer.data.name}
+            </span>
+          )}
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/50">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
