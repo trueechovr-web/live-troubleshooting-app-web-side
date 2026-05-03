@@ -12,9 +12,10 @@ const openai = process.env.OPENAI_API_KEY
 async function generateSessionSummary(
   transcript: string | null,
   pointToEvents: { objectName: string; triggeredAt: Date }[],
+  adminNotes?: { issueDescription: string; resolved: boolean } | null,
 ): Promise<string | null> {
   if (!openai) return null;
-  if (!transcript && pointToEvents.length === 0) return null;
+  if (!transcript && pointToEvents.length === 0 && !adminNotes) return null;
 
   const pointToPart =
     pointToEvents.length > 0
@@ -25,7 +26,11 @@ async function generateSessionSummary(
     ? `\n\nSession transcript:\n${transcript}`
     : "\n\nNo audio transcript was captured for this session.";
 
-  const prompt = `You are summarizing a VR remote assistance support session. Write a 2-3 sentence plain-English summary describing what was discussed and any objects that were inspected or pointed to. Be concise and factual.\n\n${pointToPart}${transcriptPart}`;
+  const adminNotesPart = adminNotes
+    ? `\n\nAdmin reported issue: "${adminNotes.issueDescription}". Resolution status: ${adminNotes.resolved ? "Resolved successfully" : "Not resolved — follow-up required"}.`
+    : "";
+
+  const prompt = `You are summarizing a VR remote assistance support session. Write a 2-3 sentence plain-English summary describing what was discussed and any objects that were inspected or pointed to. Be concise and factual.\n\n${pointToPart}${adminNotesPart}${transcriptPart}`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -264,6 +269,8 @@ router.get("/customers/:customerId/session-history", async (req, res) => {
         startedAt: sessionsTable.startedAt,
         endedAt: sessionsTable.endedAt,
         summary: sessionsTable.summary,
+        adminNotes: sessionsTable.adminNotes,
+        resolved: sessionsTable.resolved,
       })
       .from(sessionsTable)
       .leftJoin(headsetsTable, eq(sessionsTable.headsetId, headsetsTable.id))
@@ -288,12 +295,73 @@ router.get("/customers/:customerId/session-history", async (req, res) => {
         endedAt: r.endedAt?.toISOString() ?? null,
         durationSeconds,
         summary: r.summary ?? null,
+        adminNotes: r.adminNotes ?? null,
+        resolved: r.resolved ?? null,
       };
     });
 
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch session history" });
+  }
+});
+
+router.patch("/sessions/:sessionId/feedback", async (req, res) => {
+  try {
+    const { issueDescription, resolved } = req.body as { issueDescription?: string; resolved?: boolean };
+    if (typeof issueDescription !== "string" || issueDescription.trim() === "" || typeof resolved !== "boolean") {
+      res.status(400).json({ error: "issueDescription (string) and resolved (boolean) are required" });
+      return;
+    }
+
+    const [session] = await db
+      .update(sessionsTable)
+      .set({ adminNotes: issueDescription.trim(), resolved })
+      .where(eq(sessionsTable.id, req.params.sessionId))
+      .returning();
+
+    if (!session) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+
+    res.status(204).end();
+
+    // Re-generate summary with admin notes included (fire-and-forget)
+    if (openai) {
+      const [headsetRow] = await db
+        .select({ customerId: headsetsTable.customerId })
+        .from(headsetsTable)
+        .where(eq(headsetsTable.id, session.headsetId));
+
+      if (headsetRow) {
+        const [customer] = await db
+          .select({ sessionHistoryEnabled: customersTable.sessionHistoryEnabled })
+          .from(customersTable)
+          .where(eq(customersTable.id, headsetRow.customerId));
+
+        if (customer?.sessionHistoryEnabled) {
+          const pointToEvents = await db
+            .select()
+            .from(pointToEventsTable)
+            .where(eq(pointToEventsTable.sessionId, req.params.sessionId));
+
+          const summary = await generateSessionSummary(
+            session.transcript,
+            pointToEvents,
+            { issueDescription: issueDescription.trim(), resolved },
+          );
+          if (summary) {
+            await db
+              .update(sessionsTable)
+              .set({ summary })
+              .where(eq(sessionsTable.id, req.params.sessionId));
+          }
+        }
+      }
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save session feedback" });
   }
 });
 

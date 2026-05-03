@@ -266,6 +266,11 @@ export interface UpdateFeatureFlagsBody {
   sessionHistoryEnabled: boolean;
 }
 
+export interface SessionFeedbackBody {
+  issueDescription: string;
+  resolved: boolean;
+}
+
 export type TranscriptChunkBodySpeaker =
   (typeof TranscriptChunkBodySpeaker)[keyof typeof TranscriptChunkBodySpeaker];
 
@@ -287,6 +292,8 @@ export interface SessionHistoryItem {
   endedAt?: string;
   durationSeconds?: number;
   summary?: string;
+  adminNotes?: string;
+  resolved?: boolean;
 }
 
 export interface PointToEvent {

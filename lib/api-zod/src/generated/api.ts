@@ -263,6 +263,8 @@ export const GetSessionHistoryResponseItem = zod.object({
   endedAt: zod.string().optional(),
   durationSeconds: zod.number().optional(),
   summary: zod.string().optional(),
+  adminNotes: zod.string().optional(),
+  resolved: zod.boolean().optional(),
 });
 export const GetSessionHistoryResponse = zod.array(
   GetSessionHistoryResponseItem,
@@ -660,6 +662,18 @@ export const GetSessionPointToEventsResponseItem = zod.object({
 export const GetSessionPointToEventsResponse = zod.array(
   GetSessionPointToEventsResponseItem,
 );
+
+/**
+ * @summary Submit post-session admin feedback (issue description + resolution status)
+ */
+export const SubmitSessionFeedbackParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const SubmitSessionFeedbackBody = zod.object({
+  issueDescription: zod.string(),
+  resolved: zod.boolean(),
+});
 
 /**
  * @summary Append a transcribed audio chunk to a session

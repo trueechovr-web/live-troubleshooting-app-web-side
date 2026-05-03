@@ -120,6 +120,32 @@ export default function AdminSessionHistory() {
                   </div>
                 </div>
 
+                {session.adminNotes != null && (
+                  <div className="mb-3 flex items-start gap-3 bg-background border border-border rounded-lg px-4 py-3">
+                    <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      session.resolved === true
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                    }`}>
+                      {session.resolved === true ? (
+                        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                        Reported issue · {session.resolved === true ? "Resolved" : session.resolved === false ? "Follow-up needed" : "Unknown"}
+                      </p>
+                      <p className="text-sm text-foreground">{session.adminNotes}</p>
+                    </div>
+                  </div>
+                )}
+
                 {session.summary ? (
                   <div className="bg-muted/50 border border-border/60 rounded-lg px-4 py-3">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">AI Summary</p>

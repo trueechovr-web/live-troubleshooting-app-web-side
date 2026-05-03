@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   useGetSession, useListMessages, useSendMessage, useEndSession, useGetCustomer,
-  getListMessagesQueryKey, useListQrDictionary,
+  getListMessagesQueryKey, useListQrDictionary, useSubmitSessionFeedback,
 } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useDeepgramTranscription } from "@/hooks/useDeepgramTranscription";
@@ -25,6 +25,10 @@ export default function AdminSession() {
   const [pointToConfirm, setPointToConfirm] = useState("");
   const [pointToPanelOpen, setPointToPanelOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackIssue, setFeedbackIssue] = useState("");
+  const [feedbackResolved, setFeedbackResolved] = useState<boolean | null>(null);
 
   const session  = useGetSession(sessionId, { query: { enabled: !!sessionId } });
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
@@ -63,6 +67,7 @@ export default function AdminSession() {
   });
   const sendMessage = useSendMessage();
   const endSession  = useEndSession();
+  const submitFeedback = useSubmitSessionFeedback();
 
   const roomCode = session.data?.roomCode ?? "";
 
@@ -107,11 +112,119 @@ export default function AdminSession() {
     setPointToConfirm("");
   }, [sendPointTo]);
 
+  const navigateAfterSession = useCallback(() => {
+    setLocation(`${base}/${customerId}/troubleshoot`);
+  }, [setLocation, base, customerId]);
+
   const handleEndSession = useCallback(() => {
-    endSession.mutate({ sessionId }, { onSuccess: () => setLocation(`${base}/${customerId}/troubleshoot`) });
-  }, [sessionId, endSession, setLocation, base, customerId]);
+    if (sessionHistoryEnabled) {
+      endSession.mutate({ sessionId }, { onSuccess: () => setShowFeedbackModal(true) });
+    } else {
+      endSession.mutate({ sessionId }, { onSuccess: navigateAfterSession });
+    }
+  }, [sessionId, endSession, sessionHistoryEnabled, navigateAfterSession]);
+
+  const handleFeedbackSubmit = useCallback(() => {
+    if (!feedbackIssue.trim() || feedbackResolved === null) return;
+    submitFeedback.mutate(
+      { sessionId, data: { issueDescription: feedbackIssue.trim(), resolved: feedbackResolved } },
+      { onSuccess: navigateAfterSession, onError: navigateAfterSession },
+    );
+  }, [sessionId, feedbackIssue, feedbackResolved, submitFeedback, navigateAfterSession]);
 
   const pointingToName = nameMap.get(pointingToQr) ?? pointingToQr;
+
+  if (showFeedbackModal) {
+    const canSubmit = feedbackIssue.trim().length > 0 && feedbackResolved !== null;
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
+          <div className="px-8 pt-8 pb-6 border-b border-border">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+              <svg width="20" height="20" className="text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">Session notes</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Help us keep a record of this support call. This will be added to the session summary.
+            </p>
+          </div>
+
+          <div className="px-8 py-6 flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">
+                What was the main issue?
+              </label>
+              <textarea
+                data-testid="feedback-issue-input"
+                value={feedbackIssue}
+                onChange={(e) => setFeedbackIssue(e.target.value)}
+                placeholder="e.g. Espresso machine pressure too low, grinder producing inconsistent grind size…"
+                rows={4}
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-foreground">
+                Was the issue resolved?
+              </label>
+              <div className="flex gap-3">
+                <button
+                  data-testid="feedback-resolved-yes"
+                  onClick={() => setFeedbackResolved(true)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                    feedbackResolved === true
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "border-border text-muted-foreground hover:border-emerald-400 hover:text-foreground"
+                  }`}
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  Yes, resolved
+                </button>
+                <button
+                  data-testid="feedback-resolved-no"
+                  onClick={() => setFeedbackResolved(false)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                    feedbackResolved === false
+                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      : "border-border text-muted-foreground hover:border-amber-400 hover:text-foreground"
+                  }`}
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  Not yet
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-8 pb-8 flex items-center justify-between gap-3">
+            <button
+              data-testid="feedback-skip"
+              onClick={navigateAfterSession}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              Skip
+            </button>
+            <button
+              data-testid="feedback-submit"
+              onClick={handleFeedbackSubmit}
+              disabled={!canSubmit || submitFeedback.isPending}
+              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
+            >
+              {submitFeedback.isPending ? "Saving…" : "Save notes"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

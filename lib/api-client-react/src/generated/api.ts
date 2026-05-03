@@ -40,6 +40,7 @@ import type {
   QrDictionaryEntry,
   SendMessageBody,
   Session,
+  SessionFeedbackBody,
   SessionHistoryItem,
   TranscriptChunkBody,
   UpdateFeatureFlagsBody,
@@ -2485,6 +2486,93 @@ export function useGetSessionPointToEvents<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Submit post-session admin feedback (issue description + resolution status)
+ */
+export const getSubmitSessionFeedbackUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/feedback`;
+};
+
+export const submitSessionFeedback = async (
+  sessionId: string,
+  sessionFeedbackBody: SessionFeedbackBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getSubmitSessionFeedbackUrl(sessionId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sessionFeedbackBody),
+  });
+};
+
+export const getSubmitSessionFeedbackMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitSessionFeedback>>,
+    TError,
+    { sessionId: string; data: BodyType<SessionFeedbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitSessionFeedback>>,
+  TError,
+  { sessionId: string; data: BodyType<SessionFeedbackBody> },
+  TContext
+> => {
+  const mutationKey = ["submitSessionFeedback"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitSessionFeedback>>,
+    { sessionId: string; data: BodyType<SessionFeedbackBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return submitSessionFeedback(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitSessionFeedbackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitSessionFeedback>>
+>;
+export type SubmitSessionFeedbackMutationBody = BodyType<SessionFeedbackBody>;
+export type SubmitSessionFeedbackMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit post-session admin feedback (issue description + resolution status)
+ */
+export const useSubmitSessionFeedback = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitSessionFeedback>>,
+    TError,
+    { sessionId: string; data: BodyType<SessionFeedbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitSessionFeedback>>,
+  TError,
+  { sessionId: string; data: BodyType<SessionFeedbackBody> },
+  TContext
+> => {
+  return useMutation(getSubmitSessionFeedbackMutationOptions(options));
+};
 
 /**
  * @summary Append a transcribed audio chunk to a session

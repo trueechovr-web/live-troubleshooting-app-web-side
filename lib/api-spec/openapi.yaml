@@ -600,6 +600,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/PointToEvent"
 
+  /sessions/{sessionId}/feedback:
+    patch:
+      operationId: submitSessionFeedback
+      tags: [sessions]
+      summary: Submit post-session admin feedback (issue description + resolution status)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionFeedbackBody"
+      responses:
+        "204":
+          description: Feedback saved
+
   /sessions/{sessionId}/transcript-chunk:
     post:
       operationId: appendTranscriptChunk
@@ -1010,6 +1031,15 @@ components:
           type: boolean
       required: [sessionHistoryEnabled]
 
+    SessionFeedbackBody:
+      type: object
+      properties:
+        issueDescription:
+          type: string
+        resolved:
+          type: boolean
+      required: [issueDescription, resolved]
+
     TranscriptChunkBody:
       type: object
       properties:
@@ -1037,6 +1067,10 @@ components:
           type: integer
         summary:
           type: string
+        adminNotes:
+          type: string
+        resolved:
+          type: boolean
       required: [id, headsetId, headsetLabel, startedAt]
 
     PointToEvent:

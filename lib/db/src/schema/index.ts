@@ -65,6 +65,8 @@ export const sessionsTable = pgTable("sessions", {
   endedAt: timestamp("ended_at"),
   transcript: text("transcript"),
   summary: text("summary"),
+  adminNotes: text("admin_notes"),
+  resolved: boolean("resolved"),
 });
 
 export const insertSessionSchema = createInsertSchema(sessionsTable).omit({ startedAt: true, endedAt: true });
