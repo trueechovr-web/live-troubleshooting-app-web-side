@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetCustomer, useGetSessionHistory } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -26,8 +27,21 @@ export default function AdminSessionHistory() {
   const [, setLocation] = useLocation();
   const { isTevrMode, base } = usePortalMode();
 
+  const [query, setQuery] = useState("");
+
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
   const history = useGetSessionHistory(customerId, { query: { enabled: !!customerId } });
+
+  const filtered = useMemo(() => {
+    const sessions = history.data ?? [];
+    const q = query.trim().toLowerCase();
+    if (!q) return sessions;
+    return sessions.filter((s) =>
+      s.headsetLabel?.toLowerCase().includes(q) ||
+      s.summary?.toLowerCase().includes(q) ||
+      s.adminNotes?.toLowerCase().includes(q)
+    );
+  }, [history.data, query]);
 
   const headerSubtitle = isTevrMode ? "TEVR Operations" : "Client Admin";
 
@@ -69,29 +83,78 @@ export default function AdminSessionHistory() {
       </header>
 
       <div className="px-6 py-8 max-w-4xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <p className="text-sm text-primary font-medium mb-1">{customer.data?.name ?? "…"}</p>
           <h1 className="text-xl font-semibold text-foreground mb-1">Session History</h1>
           <p className="text-muted-foreground text-sm">Past support sessions with AI-generated summaries.</p>
+        </div>
+
+        <div className="mb-6 relative">
+          <svg
+            width="16" height="16"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by headset name, summary, or notes…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {history.isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
-        ) : history.data?.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-12 text-center">
             <div className="w-12 h-12 rounded-xl border border-border bg-muted flex items-center justify-center mx-auto mb-4">
-              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} className="text-muted-foreground">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              {query ? (
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} className="text-muted-foreground">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} className="text-muted-foreground">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">No sessions yet</p>
-            <p className="text-sm text-muted-foreground">Completed sessions will appear here once the first call ends.</p>
+            {query ? (
+              <>
+                <p className="text-sm font-medium text-foreground mb-1">No results for "{query}"</p>
+                <p className="text-sm text-muted-foreground">Try a different keyword or headset name.</p>
+                <button
+                  onClick={() => setQuery("")}
+                  className="mt-4 text-sm text-primary hover:underline"
+                >
+                  Clear search
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-foreground mb-1">No sessions yet</p>
+                <p className="text-sm text-muted-foreground">Completed sessions will appear here once the first call ends.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {history.data?.map((session) => (
+            {filtered.map((session) => (
               <div
                 key={session.id}
                 className="rounded-xl border border-border bg-card p-6 shadow-sm"
