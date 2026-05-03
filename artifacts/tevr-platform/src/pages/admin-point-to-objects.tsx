@@ -192,7 +192,7 @@ export default function AdminPointToObjects() {
           <span className="font-semibold text-foreground">
             {isTevrMode ? "True Echo VR" : (customer.data?.name ?? "…")}
           </span>
-          <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Account Settings"}</span>
+          <span className="text-muted-foreground text-sm">{isTevrMode ? "TEVR Operations" : "Location and QR Code Management"}</span>
           {isTevrMode && customer.data?.name && (
             <span className="ml-1 px-3 py-1 rounded-lg bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-sm font-bold border border-red-200 dark:border-red-800 tracking-wide">
               {customer.data.name}
@@ -218,6 +218,13 @@ export default function AdminPointToObjects() {
               className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
             >
               QR Code Dictionary
+            </button>{" "}
+            and set up locations in{" "}
+            <button
+              onClick={() => setLocation(`${base}/${customerId}/settings/locations`)}
+              className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+            >
+              Location Setup
             </button>
             .
           </p>
@@ -237,8 +244,8 @@ export default function AdminPointToObjects() {
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   No calibrated QR codes found. Headsets must scan and calibrate QR codes before they
                   can be assigned to categories. Set up locations in{" "}
-                  <button onClick={() => setLocation(`${base}/${customerId}/settings/qr-dictionary`)} className="underline underline-offset-1 hover:opacity-80">
-                    QR Code Dictionary
+                  <button onClick={() => setLocation(`${base}/${customerId}/settings/locations`)} className="underline underline-offset-1 hover:opacity-80">
+                    Location Setup
                   </button>
                   .
                 </p>
