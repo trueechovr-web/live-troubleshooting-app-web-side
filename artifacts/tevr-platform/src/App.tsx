@@ -13,6 +13,8 @@ import AdminSettings from "@/pages/admin-settings";
 import AdminPointToObjects from "@/pages/admin-point-to-objects";
 import AdminQrDictionary from "@/pages/admin-qr-dictionary";
 import AdminQrLocation from "@/pages/admin-qr-location";
+import AdminLocationSetup from "@/pages/admin-location-setup";
+import AdminTechSetup from "@/pages/admin-tech-setup";
 import AdminSessionHistory from "@/pages/admin-session-history";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
@@ -38,8 +40,11 @@ function Router() {
       <Route path="/tevr/:customerId/session/:sessionId" component={AdminSession} />
       <Route path="/tevr/:customerId/settings" component={AdminSettings} />
       <Route path="/tevr/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
+      <Route path="/tevr/:customerId/settings/locations" component={AdminLocationSetup} />
+      <Route path="/tevr/:customerId/settings/locations/:locationId" component={AdminQrLocation} />
       <Route path="/tevr/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
       <Route path="/tevr/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+      <Route path="/tevr/:customerId/settings/tech-setup" component={AdminTechSetup} />
       <Route path="/tevr/:customerId/session-history" component={AdminSessionHistory} />
 
       {/* Client Admin */}
@@ -49,8 +54,11 @@ function Router() {
       <Route path="/admin/:customerId/session/:sessionId" component={AdminSession} />
       <Route path="/admin/:customerId/settings" component={AdminSettings} />
       <Route path="/admin/:customerId/settings/point-to-objects" component={AdminPointToObjects} />
+      <Route path="/admin/:customerId/settings/locations" component={AdminLocationSetup} />
+      <Route path="/admin/:customerId/settings/locations/:locationId" component={AdminQrLocation} />
       <Route path="/admin/:customerId/settings/qr-dictionary" component={AdminQrDictionary} />
       <Route path="/admin/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
+      <Route path="/admin/:customerId/settings/tech-setup" component={AdminTechSetup} />
       <Route path="/admin/:customerId/session-history" component={AdminSessionHistory} />
 
       {/* Field Tech */}
