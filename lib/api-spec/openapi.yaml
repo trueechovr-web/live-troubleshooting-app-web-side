@@ -443,6 +443,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/Headset"
 
+  /headsets/{headsetId}:
+    get:
+      operationId: getHeadset
+      tags: [headsets]
+      summary: Get a single headset by ID
+      parameters:
+        - name: headsetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Headset record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Headset"
+        "404":
+          description: Headset not found
+
   /headsets/{headsetId}/startup-data:
     get:
       operationId: getHeadsetStartupData

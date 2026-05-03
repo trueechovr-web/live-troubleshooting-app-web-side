@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   useGetSession, useListMessages, useSendMessage, useEndSession, useGetCustomer,
-  getListMessagesQueryKey, useListQrDictionary, useSubmitSessionFeedback,
+  getListMessagesQueryKey, useListQrDictionary, useSubmitSessionFeedback, useGetHeadset,
 } from "@workspace/api-client-react";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useDeepgramTranscription } from "@/hooks/useDeepgramTranscription";
@@ -71,9 +71,16 @@ export default function AdminSession() {
 
   const roomCode = session.data?.roomCode ?? "";
 
-  const { isConnected, remoteStream, toggleMic, toggleCamera, isMicOn, isCameraOn, sendPointTo } = useWebRTC({
+  const { isConnected, remoteStream, toggleMic, toggleCamera, isMicOn, isCameraOn, sendPointTo, batteryLevel: socketBattery } = useWebRTC({
     roomCode, role: "admin", remoteVideoRef, localVideoRef,
   });
+
+  const headsetId = session.data?.headsetId ?? "";
+  const headset = useGetHeadset(headsetId, {
+    query: { enabled: !!headsetId, refetchInterval: 30000 },
+  });
+
+  const batteryLevel: number | null = socketBattery ?? headset.data?.batteryLevel ?? null;
 
   const sessionHistoryEnabled = customer.data?.sessionHistoryEnabled ?? false;
   useDeepgramTranscription({
@@ -294,6 +301,40 @@ export default function AdminSession() {
                   <p className="text-white/50 text-sm">Waiting for headset to connect</p>
                   {roomCode && <p className="text-white/30 text-xs mt-1 font-mono">{roomCode}</p>}
                 </div>
+              </div>
+            )}
+            {batteryLevel !== null && (
+              <div className="absolute bottom-4 left-4 flex flex-col items-start gap-1">
+                <div
+                  data-testid="battery-indicator"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md backdrop-blur-sm text-xs font-semibold select-none transition-colors ${
+                    batteryLevel < 20
+                      ? "bg-red-900/70 text-red-300 animate-pulse"
+                      : batteryLevel < 40
+                      ? "bg-amber-900/70 text-amber-300"
+                      : "bg-black/50 text-white/70"
+                  }`}
+                >
+                  {/* Battery icon */}
+                  <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className="shrink-0">
+                    <rect x="0.5" y="0.5" width="15" height="11" rx="2" stroke="currentColor" strokeWidth="1.2" />
+                    <rect x="16" y="3.5" width="1.5" height="5" rx="0.75" fill="currentColor" />
+                    <rect
+                      x="2"
+                      y="2"
+                      width={`${Math.round((batteryLevel / 100) * 11)}`}
+                      height="8"
+                      rx="1"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  {batteryLevel}%
+                </div>
+                {batteryLevel < 20 && (
+                  <span className="text-red-400 text-xs font-medium bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm animate-pulse">
+                    Low battery
+                  </span>
+                )}
               </div>
             )}
             {isCameraOn && (

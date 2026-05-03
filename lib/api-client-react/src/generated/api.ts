@@ -1769,6 +1769,93 @@ export function useListHeadsets<
 }
 
 /**
+ * @summary Get a single headset by ID
+ */
+export const getGetHeadsetUrl = (headsetId: string) => {
+  return `/api/headsets/${headsetId}`;
+};
+
+export const getHeadset = async (
+  headsetId: string,
+  options?: RequestInit,
+): Promise<Headset> => {
+  return customFetch<Headset>(getGetHeadsetUrl(headsetId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHeadsetQueryKey = (headsetId: string) => {
+  return [`/api/headsets/${headsetId}`] as const;
+};
+
+export const getGetHeadsetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHeadset>>,
+  TError = ErrorType<void>,
+>(
+  headsetId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHeadset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetHeadsetQueryKey(headsetId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getHeadset>>> = ({
+    signal,
+  }) => getHeadset(headsetId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!headsetId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHeadset>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHeadsetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHeadset>>
+>;
+export type GetHeadsetQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single headset by ID
+ */
+
+export function useGetHeadset<
+  TData = Awaited<ReturnType<typeof getHeadset>>,
+  TError = ErrorType<void>,
+>(
+  headsetId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHeadset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHeadsetQueryOptions(headsetId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get startup sync data — called by Unity when the headset app launches
  */
 export const getGetHeadsetStartupDataUrl = (

@@ -518,6 +518,25 @@ export const ListHeadsetsResponseItem = zod.object({
 export const ListHeadsetsResponse = zod.array(ListHeadsetsResponseItem);
 
 /**
+ * @summary Get a single headset by ID
+ */
+export const GetHeadsetParams = zod.object({
+  headsetId: zod.coerce.string(),
+});
+
+export const GetHeadsetResponse = zod.object({
+  id: zod.string(),
+  serialNumber: zod.string(),
+  label: zod.string(),
+  customerId: zod.string(),
+  customerName: zod.string(),
+  status: zod.enum(["online", "offline", "busy"]),
+  batteryLevel: zod.number(),
+  firmwareVersion: zod.string(),
+  lastSeen: zod.string(),
+});
+
+/**
  * @summary Get startup sync data — called by Unity when the headset app launches
  */
 export const GetHeadsetStartupDataParams = zod.object({

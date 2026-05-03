@@ -38,6 +38,33 @@ router.get("/headsets", async (req, res) => {
   }
 });
 
+/* ── GET /headsets/:headsetId ── */
+router.get("/headsets/:headsetId", async (req, res) => {
+  try {
+    const [row] = await db
+      .select({
+        id: headsetsTable.id,
+        serialNumber: headsetsTable.serialNumber,
+        label: headsetsTable.label,
+        customerId: headsetsTable.customerId,
+        customerName: customersTable.name,
+        status: headsetsTable.status,
+        batteryLevel: headsetsTable.batteryLevel,
+        firmwareVersion: headsetsTable.firmwareVersion,
+        lastSeen: headsetsTable.lastSeen,
+      })
+      .from(headsetsTable)
+      .leftJoin(customersTable, eq(headsetsTable.customerId, customersTable.id))
+      .where(eq(headsetsTable.id, req.params.headsetId));
+
+    if (!row) { res.status(404).json({ error: "Headset not found" }); return; }
+
+    res.json({ ...row, customerName: row.customerName ?? "Unknown", lastSeen: row.lastSeen?.toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch headset" });
+  }
+});
+
 /* ── GET /headsets/:headsetId/startup-data?locationId=... ── */
 router.get("/headsets/:headsetId/startup-data", async (req, res) => {
   try {

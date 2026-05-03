@@ -13,6 +13,7 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -171,6 +172,10 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
       }
     });
 
+    socket.on("battery-update", ({ batteryLevel: level }: { batteryLevel: number }) => {
+      setBatteryLevel(level);
+    });
+
     return () => {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(t => t.stop());
@@ -199,6 +204,7 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
     isMicOn,
     isCameraOn,
     sendPointTo,
-    socket: socketRef.current
+    socket: socketRef.current,
+    batteryLevel,
   };
 }

@@ -2,7 +2,7 @@ import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
-import { pointToEventsTable, sessionsTable } from "@workspace/db";
+import { pointToEventsTable, sessionsTable, headsetsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -62,6 +62,25 @@ export function setupSocketIO(httpServer: HttpServer) {
 
     socket.on("chat-message", ({ roomCode, message, senderRole }: { roomCode: string; message: string; senderRole: string }) => {
       socket.to(roomCode).emit("chat-message", { message, senderRole, timestamp: new Date().toISOString() });
+    });
+
+    socket.on("battery-update", ({ roomCode, batteryLevel }: { roomCode: string; batteryLevel: number }) => {
+      if (typeof batteryLevel !== "number" || batteryLevel < 0 || batteryLevel > 100) return;
+      // Broadcast to all other peers in the room
+      socket.to(roomCode).emit("battery-update", { batteryLevel });
+      // Persist to DB — find headset via session roomCode
+      db.select({ headsetId: sessionsTable.headsetId })
+        .from(sessionsTable)
+        .where(eq(sessionsTable.roomCode, roomCode))
+        .then(([session]) => {
+          if (session) {
+            db.update(headsetsTable)
+              .set({ batteryLevel, lastSeen: new Date() })
+              .where(eq(headsetsTable.id, session.headsetId))
+              .catch((err) => logger.error({ err }, "Failed to persist battery level"));
+          }
+        })
+        .catch((err) => logger.error({ err }, "Failed to look up session for battery update"));
     });
 
     socket.on("point-to", ({ roomCode, objectName }: { roomCode: string; objectName: string }) => {
