@@ -66,21 +66,24 @@ export function setupSocketIO(httpServer: HttpServer) {
 
     socket.on("battery-update", ({ roomCode, batteryLevel }: { roomCode: string; batteryLevel: number }) => {
       if (typeof batteryLevel !== "number" || batteryLevel < 0 || batteryLevel > 100) return;
-      // Broadcast to all other peers in the room
-      socket.to(roomCode).emit("battery-update", { batteryLevel });
-      // Persist to DB — find headset via session roomCode
+      // Only the headset peer in this room may send battery updates
+      const peers = rooms.get(roomCode) ?? [];
+      const sender = peers.find((p) => p.socketId === socket.id);
+      if (!sender || sender.role !== "headset") return;
+      // Persist first, then broadcast to other peers on success
       db.select({ headsetId: sessionsTable.headsetId })
         .from(sessionsTable)
         .where(eq(sessionsTable.roomCode, roomCode))
         .then(([session]) => {
-          if (session) {
-            db.update(headsetsTable)
-              .set({ batteryLevel, lastSeen: new Date() })
-              .where(eq(headsetsTable.id, session.headsetId))
-              .catch((err) => logger.error({ err }, "Failed to persist battery level"));
-          }
+          if (!session) return;
+          return db.update(headsetsTable)
+            .set({ batteryLevel, lastSeen: new Date() })
+            .where(eq(headsetsTable.id, session.headsetId))
+            .then(() => {
+              socket.to(roomCode).emit("battery-update", { batteryLevel });
+            });
         })
-        .catch((err) => logger.error({ err }, "Failed to look up session for battery update"));
+        .catch((err) => logger.error({ err }, "Failed to process battery update"));
     });
 
     socket.on("point-to", ({ roomCode, objectName }: { roomCode: string; objectName: string }) => {

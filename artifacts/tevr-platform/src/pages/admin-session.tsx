@@ -303,7 +303,7 @@ export default function AdminSession() {
                 </div>
               </div>
             )}
-            {batteryLevel !== null && (
+            {isConnected && batteryLevel !== null && (
               <div className="absolute bottom-4 left-4 flex flex-col items-start gap-1">
                 <div
                   data-testid="battery-indicator"
