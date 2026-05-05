@@ -3,10 +3,10 @@ import { useLocation, useParams } from "wouter";
 import { usePortalMode } from "@/hooks/usePortalMode";
 import {
   useGetCustomer,
-  useGetLocationQrCodes,
+  useGetLocationQrCodeSettings,
+  useSetLocationQrCodeSetting,
   useClearLocationQrCodes,
-  useListQrDictionary,
-  getGetLocationQrCodesQueryKey,
+  getGetLocationQrCodeSettingsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -30,21 +30,44 @@ export default function AdminQrLocation() {
   const queryClient = useQueryClient();
 
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
-  const qrData = useGetLocationQrCodes(locationId);
-  const dictQuery = useListQrDictionary(customerId, { query: { enabled: !!customerId } });
+  const settingsQuery = useGetLocationQrCodeSettings(locationId, { query: { enabled: !!locationId } });
+  const setSettingMutation = useSetLocationQrCodeSetting();
   const clearMutation = useClearLocationQrCodes();
 
   const [clearing, setClearing] = useState(false);
   const [clearMsg, setClearMsg] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const nameMap = new Map((dictQuery.data ?? []).map((d) => [d.qrValue, d.name]));
+  const locationData = settingsQuery.data;
+  const entries = locationData?.entries ?? [];
+
+  const calibratedCount = entries.filter((e) => !!e.calibratedAt).length;
+  const enabledCount = entries.filter((e) => e.enabled).length;
+
+  const lastCalibratedEntry = entries
+    .filter((e) => !!e.calibratedAt)
+    .sort((a, b) => new Date(b.calibratedAt!).getTime() - new Date(a.calibratedAt!).getTime())[0];
+
+  const handleToggle = async (qrDictionaryEntryId: string, currentEnabled: boolean) => {
+    setTogglingId(qrDictionaryEntryId);
+    try {
+      await setSettingMutation.mutateAsync({
+        locationId,
+        qrDictionaryEntryId,
+        data: { enabled: !currentEnabled },
+      });
+      await queryClient.invalidateQueries({ queryKey: getGetLocationQrCodeSettingsQueryKey(locationId) });
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const handleClear = async () => {
     setClearing(true);
     setClearMsg("");
     try {
       await clearMutation.mutateAsync({ locationId });
-      await queryClient.invalidateQueries({ queryKey: getGetLocationQrCodesQueryKey(locationId) });
+      await queryClient.invalidateQueries({ queryKey: getGetLocationQrCodeSettingsQueryKey(locationId) });
       setClearMsg("Calibration cleared");
       setTimeout(() => setClearMsg(""), 3000);
     } catch {
@@ -53,10 +76,6 @@ export default function AdminQrLocation() {
       setClearing(false);
     }
   };
-
-  const isLoading = qrData.isLoading;
-  const location = qrData.data;
-  const qrCodes = location?.qrCodes ?? [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -89,12 +108,12 @@ export default function AdminQrLocation() {
           <button onClick={() => setLocation(`${base}/${customerId}/settings/locations`)} className="text-muted-foreground text-sm hover:text-foreground transition-colors">
             Location Setup
           </button>
-          {location && (
+          {locationData && (
             <>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/50">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
-              <span className="text-muted-foreground text-sm">{location.locationName}</span>
+              <span className="text-muted-foreground text-sm">{locationData.locationName}</span>
             </>
           )}
         </div>
@@ -102,21 +121,23 @@ export default function AdminQrLocation() {
       </header>
 
       <div className="px-6 py-8 max-w-4xl mx-auto">
-        {isLoading ? (
+        {settingsQuery.isLoading ? (
           <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading…</div>
-        ) : !location ? (
+        ) : !locationData ? (
           <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Location not found.</div>
         ) : (
           <>
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-xl font-semibold text-foreground mb-1">{location.locationName}</h1>
+                <h1 className="text-xl font-semibold text-foreground mb-1">{locationData.locationName}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {location.lastCalibratedAt
-                    ? <>Last calibrated <span className="font-medium text-foreground">{relativeTime(location.lastCalibratedAt)}</span>{location.lastCalibratedByHeadsetId ? <> by headset <span className="font-mono text-xs bg-muted rounded px-1 py-0.5">{location.lastCalibratedByHeadsetId}</span></> : ""}</>
+                  {lastCalibratedEntry?.calibratedAt
+                    ? <>Last calibrated <span className="font-medium text-foreground">{relativeTime(lastCalibratedEntry.calibratedAt)}</span>{lastCalibratedEntry.headsetId ? <> by headset <span className="font-mono text-xs bg-muted rounded px-1 py-0.5">{lastCalibratedEntry.headsetId}</span></> : ""}</>
                     : "Not yet calibrated"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{qrCodes.length} calibrated QR {qrCodes.length === 1 ? "code" : "codes"}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {calibratedCount} calibrated · {enabledCount} of {entries.length} enabled
+                </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {clearMsg && (
@@ -126,7 +147,7 @@ export default function AdminQrLocation() {
                 )}
                 <button
                   onClick={handleClear}
-                  disabled={clearing || qrCodes.length === 0}
+                  disabled={clearing || calibratedCount === 0}
                   className="text-sm px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {clearing ? "Clearing…" : "Clear calibration"}
@@ -134,15 +155,15 @@ export default function AdminQrLocation() {
               </div>
             </div>
 
-            {qrCodes.length === 0 ? (
+            {entries.length === 0 ? (
               <div className="rounded-xl border border-border bg-card p-8 text-center">
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3">
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-muted-foreground">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-foreground mb-1">No calibration data</p>
-                <p className="text-xs text-muted-foreground">Open the Unity app on a Meta Quest headset, select this location, and complete a calibration scan to populate this dictionary.</p>
+                <p className="text-sm font-medium text-foreground mb-1">No QR codes in dictionary</p>
+                <p className="text-xs text-muted-foreground">Add QR codes to the company dictionary first, then come back here to manage which ones are active at this location.</p>
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -150,32 +171,59 @@ export default function AdminQrLocation() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide w-10">Active</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">QR Value</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Calibration</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Position (x, y, z)</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rotation (x, y, z, w)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {qrCodes.map((qr) => {
-                        const name = nameMap.get(qr.qrValue);
+                      {entries.map((entry) => {
+                        const isToggling = togglingId === entry.qrDictionaryEntryId;
+                        const isDisabled = !entry.enabled;
                         return (
-                          <tr key={qr.id} className="hover:bg-muted/20 transition-colors">
+                          <tr
+                            key={entry.qrDictionaryEntryId}
+                            className={`transition-colors ${isDisabled ? "opacity-40" : "hover:bg-muted/20"}`}
+                          >
                             <td className="px-4 py-3">
-                              {name ? (
-                                <span className="font-medium text-foreground">{name}</span>
+                              <button
+                                onClick={() => handleToggle(entry.qrDictionaryEntryId, entry.enabled)}
+                                disabled={isToggling}
+                                title={entry.enabled ? "Disable for this location" : "Enable for this location"}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed ${
+                                  entry.enabled
+                                    ? "bg-primary"
+                                    : "bg-muted-foreground/30"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                                    entry.enabled ? "translate-x-4" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-medium text-foreground">{entry.name}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-mono text-xs bg-muted rounded px-2 py-1 text-foreground">{entry.qrValue}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {entry.calibratedAt ? (
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{relativeTime(entry.calibratedAt)}</span>
                               ) : (
-                                <span className="text-muted-foreground italic">Unnamed</span>
+                                <span className="text-xs text-muted-foreground italic">Not calibrated</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
-                              <span className="font-mono text-xs bg-muted rounded px-2 py-1 text-foreground">{qr.qrValue}</span>
+                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                              {entry.posX != null ? `${fmt(entry.posX)}, ${fmt(entry.posY!)}, ${fmt(entry.posZ!)}` : "—"}
                             </td>
                             <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                              {fmt(qr.posX)}, {fmt(qr.posY)}, {fmt(qr.posZ)}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                              {fmt(qr.rotX)}, {fmt(qr.rotY)}, {fmt(qr.rotZ)}, {fmt(qr.rotW)}
+                              {entry.rotX != null ? `${fmt(entry.rotX)}, ${fmt(entry.rotY!)}, ${fmt(entry.rotZ!)}, ${fmt(entry.rotW!)}` : "—"}
                             </td>
                           </tr>
                         );

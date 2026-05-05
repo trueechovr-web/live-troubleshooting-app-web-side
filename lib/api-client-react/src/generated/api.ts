@@ -32,16 +32,19 @@ import type {
   HealthStatus,
   ImportQrCodesBody,
   ListHeadsetsParams,
+  LocationQrCodeSettingsView,
   LocationQrData,
   LocationSummary,
   Message,
   PointToEvent,
   PointToObjects,
+  QrCodeSettingResult,
   QrDictionaryEntry,
   SendMessageBody,
   Session,
   SessionFeedbackBody,
   SessionHistoryItem,
+  SetQrCodeSettingBody,
   TranscriptChunkBody,
   UpdateFeatureFlagsBody,
 } from "./api.schemas";
@@ -1023,6 +1026,221 @@ export const useDeleteLocation = <
   TContext
 > => {
   return useMutation(getDeleteLocationMutationOptions(options));
+};
+
+/**
+ * @summary Get all dictionary entries for a location merged with calibration data and enabled status (admin-facing)
+ */
+export const getGetLocationQrCodeSettingsUrl = (locationId: string) => {
+  return `/api/locations/${locationId}/qr-code-settings`;
+};
+
+export const getLocationQrCodeSettings = async (
+  locationId: string,
+  options?: RequestInit,
+): Promise<LocationQrCodeSettingsView> => {
+  return customFetch<LocationQrCodeSettingsView>(
+    getGetLocationQrCodeSettingsUrl(locationId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetLocationQrCodeSettingsQueryKey = (locationId: string) => {
+  return [`/api/locations/${locationId}/qr-code-settings`] as const;
+};
+
+export const getGetLocationQrCodeSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  locationId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLocationQrCodeSettingsQueryKey(locationId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLocationQrCodeSettings>>
+  > = ({ signal }) =>
+    getLocationQrCodeSettings(locationId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!locationId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLocationQrCodeSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLocationQrCodeSettings>>
+>;
+export type GetLocationQrCodeSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all dictionary entries for a location merged with calibration data and enabled status (admin-facing)
+ */
+
+export function useGetLocationQrCodeSettings<
+  TData = Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  locationId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLocationQrCodeSettingsQueryOptions(
+    locationId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Enable or disable a dictionary entry for a specific location
+ */
+export const getSetLocationQrCodeSettingUrl = (
+  locationId: string,
+  qrDictionaryEntryId: string,
+) => {
+  return `/api/locations/${locationId}/qr-code-settings/${qrDictionaryEntryId}`;
+};
+
+export const setLocationQrCodeSetting = async (
+  locationId: string,
+  qrDictionaryEntryId: string,
+  setQrCodeSettingBody: SetQrCodeSettingBody,
+  options?: RequestInit,
+): Promise<QrCodeSettingResult> => {
+  return customFetch<QrCodeSettingResult>(
+    getSetLocationQrCodeSettingUrl(locationId, qrDictionaryEntryId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setQrCodeSettingBody),
+    },
+  );
+};
+
+export const getSetLocationQrCodeSettingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setLocationQrCodeSetting>>,
+    TError,
+    {
+      locationId: string;
+      qrDictionaryEntryId: string;
+      data: BodyType<SetQrCodeSettingBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setLocationQrCodeSetting>>,
+  TError,
+  {
+    locationId: string;
+    qrDictionaryEntryId: string;
+    data: BodyType<SetQrCodeSettingBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["setLocationQrCodeSetting"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setLocationQrCodeSetting>>,
+    {
+      locationId: string;
+      qrDictionaryEntryId: string;
+      data: BodyType<SetQrCodeSettingBody>;
+    }
+  > = (props) => {
+    const { locationId, qrDictionaryEntryId, data } = props ?? {};
+
+    return setLocationQrCodeSetting(
+      locationId,
+      qrDictionaryEntryId,
+      data,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetLocationQrCodeSettingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setLocationQrCodeSetting>>
+>;
+export type SetLocationQrCodeSettingMutationBody =
+  BodyType<SetQrCodeSettingBody>;
+export type SetLocationQrCodeSettingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enable or disable a dictionary entry for a specific location
+ */
+export const useSetLocationQrCodeSetting = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setLocationQrCodeSetting>>,
+    TError,
+    {
+      locationId: string;
+      qrDictionaryEntryId: string;
+      data: BodyType<SetQrCodeSettingBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setLocationQrCodeSetting>>,
+  TError,
+  {
+    locationId: string;
+    qrDictionaryEntryId: string;
+    data: BodyType<SetQrCodeSettingBody>;
+  },
+  TContext
+> => {
+  return useMutation(getSetLocationQrCodeSettingMutationOptions(options));
 };
 
 /**

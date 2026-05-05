@@ -338,6 +338,53 @@ export const DeleteLocationResponse = zod.object({
 });
 
 /**
+ * @summary Get all dictionary entries for a location merged with calibration data and enabled status (admin-facing)
+ */
+export const GetLocationQrCodeSettingsParams = zod.object({
+  locationId: zod.coerce.string(),
+});
+
+export const GetLocationQrCodeSettingsResponse = zod.object({
+  locationId: zod.string(),
+  locationName: zod.string(),
+  entries: zod.array(
+    zod.object({
+      qrDictionaryEntryId: zod.string(),
+      qrValue: zod.string(),
+      name: zod.string(),
+      enabled: zod.boolean(),
+      posX: zod.number().optional(),
+      posY: zod.number().optional(),
+      posZ: zod.number().optional(),
+      rotX: zod.number().optional(),
+      rotY: zod.number().optional(),
+      rotZ: zod.number().optional(),
+      rotW: zod.number().optional(),
+      calibratedAt: zod.string().optional(),
+      headsetId: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Enable or disable a dictionary entry for a specific location
+ */
+export const SetLocationQrCodeSettingParams = zod.object({
+  locationId: zod.coerce.string(),
+  qrDictionaryEntryId: zod.coerce.string(),
+});
+
+export const SetLocationQrCodeSettingBody = zod.object({
+  enabled: zod.boolean(),
+});
+
+export const SetLocationQrCodeSettingResponse = zod.object({
+  locationId: zod.string(),
+  qrDictionaryEntryId: zod.string(),
+  enabled: zod.boolean(),
+});
+
+/**
  * @summary Get all calibrated QR codes for a location
  */
 export const GetLocationQrCodesParams = zod.object({

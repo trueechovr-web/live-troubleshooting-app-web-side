@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { locationsTable, qrCodesTable, customersTable } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { locationsTable, qrCodesTable, customersTable, qrDictionaryTable, locationQrCodeSettingsTable } from "@workspace/db";
+import { eq, inArray, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { CreateLocationBody, ImportLocationQrCodesBody } from "@workspace/api-zod";
 
@@ -150,7 +150,106 @@ router.delete("/customers/:customerId/locations/:locationId", async (req, res) =
   }
 });
 
-/* ── GET /locations/:locationId/qr-codes ── */
+/* ── GET /locations/:locationId/qr-code-settings  (admin-facing: all dict entries + calibration + enabled) ── */
+router.get("/locations/:locationId/qr-code-settings", async (req, res) => {
+  try {
+    const [loc] = await db
+      .select()
+      .from(locationsTable)
+      .where(eq(locationsTable.id, req.params.locationId));
+    if (!loc) { res.status(404).json({ error: "Location not found" }); return; }
+
+    const [dictEntries, qrCodes, settings] = await Promise.all([
+      db.select().from(qrDictionaryTable)
+        .where(eq(qrDictionaryTable.customerId, loc.customerId))
+        .orderBy(qrDictionaryTable.name),
+      db.select().from(qrCodesTable)
+        .where(eq(qrCodesTable.locationId, req.params.locationId)),
+      db.select().from(locationQrCodeSettingsTable)
+        .where(eq(locationQrCodeSettingsTable.locationId, req.params.locationId)),
+    ]);
+
+    const qrCodeMap = new Map(qrCodes.map((qr) => [qr.qrValue, qr]));
+    const settingsMap = new Map(settings.map((s) => [s.qrDictionaryEntryId, s.enabled]));
+
+    res.json({
+      locationId: loc.id,
+      locationName: loc.name,
+      entries: dictEntries.map((entry) => {
+        const calibration = qrCodeMap.get(entry.qrValue);
+        const enabled = settingsMap.get(entry.id) ?? true;
+        return {
+          qrDictionaryEntryId: entry.id,
+          qrValue: entry.qrValue,
+          name: entry.name,
+          enabled,
+          ...(calibration ? {
+            posX: calibration.posX,
+            posY: calibration.posY,
+            posZ: calibration.posZ,
+            rotX: calibration.rotX,
+            rotY: calibration.rotY,
+            rotZ: calibration.rotZ,
+            rotW: calibration.rotW,
+            calibratedAt: calibration.calibratedAt.toISOString(),
+            ...(calibration.headsetId != null ? { headsetId: calibration.headsetId } : {}),
+          } : {}),
+        };
+      }),
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch QR code settings" });
+  }
+});
+
+/* ── PUT /locations/:locationId/qr-code-settings/:qrDictionaryEntryId ── */
+router.put("/locations/:locationId/qr-code-settings/:qrDictionaryEntryId", async (req, res) => {
+  try {
+    const { enabled } = req.body as { enabled: unknown };
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({ error: "enabled must be a boolean" }); return;
+    }
+
+    const [loc] = await db
+      .select()
+      .from(locationsTable)
+      .where(eq(locationsTable.id, req.params.locationId));
+    if (!loc) { res.status(404).json({ error: "Location not found" }); return; }
+
+    const [entry] = await db
+      .select()
+      .from(qrDictionaryTable)
+      .where(and(
+        eq(qrDictionaryTable.id, req.params.qrDictionaryEntryId),
+        eq(qrDictionaryTable.customerId, loc.customerId),
+      ));
+    if (!entry) { res.status(404).json({ error: "Dictionary entry not found" }); return; }
+
+    const [setting] = await db
+      .insert(locationQrCodeSettingsTable)
+      .values({
+        id: randomUUID(),
+        locationId: req.params.locationId,
+        qrDictionaryEntryId: req.params.qrDictionaryEntryId,
+        enabled,
+      })
+      .onConflictDoUpdate({
+        target: [locationQrCodeSettingsTable.locationId, locationQrCodeSettingsTable.qrDictionaryEntryId],
+        set: { enabled },
+      })
+      .returning();
+
+    res.json({
+      locationId: setting.locationId,
+      qrDictionaryEntryId: setting.qrDictionaryEntryId,
+      enabled: setting.enabled,
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to update QR code setting" });
+  }
+});
+
+/* ── GET /locations/:locationId/qr-codes  (headset-facing: only enabled + calibrated) ── */
 router.get("/locations/:locationId/qr-codes", async (req, res) => {
   try {
     const [loc] = await db
@@ -159,10 +258,20 @@ router.get("/locations/:locationId/qr-codes", async (req, res) => {
       .where(eq(locationsTable.id, req.params.locationId));
     if (!loc) { res.status(404).json({ error: "Location not found" }); return; }
 
-    const qrCodes = await db
-      .select()
-      .from(qrCodesTable)
-      .where(eq(qrCodesTable.locationId, req.params.locationId));
+    const [allQrCodes, dictEntries, settings] = await Promise.all([
+      db.select().from(qrCodesTable).where(eq(qrCodesTable.locationId, req.params.locationId)),
+      db.select().from(qrDictionaryTable).where(eq(qrDictionaryTable.customerId, loc.customerId)),
+      db.select().from(locationQrCodeSettingsTable).where(eq(locationQrCodeSettingsTable.locationId, req.params.locationId)),
+    ]);
+
+    const dictEntryIdByQrValue = new Map(dictEntries.map((e) => [e.qrValue, e.id]));
+    const settingsMap = new Map(settings.map((s) => [s.qrDictionaryEntryId, s.enabled]));
+
+    const qrCodes = allQrCodes.filter((qr) => {
+      const entryId = dictEntryIdByQrValue.get(qr.qrValue);
+      if (!entryId) return true;
+      return settingsMap.get(entryId) ?? true;
+    });
 
     const latest = qrCodes.reduce<{ at: Date | null; headset: string | null }>(
       (acc, r) => (!acc.at || r.calibratedAt > acc.at ? { at: r.calibratedAt, headset: r.headsetId ?? null } : acc),

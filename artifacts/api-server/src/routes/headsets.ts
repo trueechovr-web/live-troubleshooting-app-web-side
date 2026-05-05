@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { headsetsTable, customersTable, locationsTable, qrCodesTable, qrDictionaryTable } from "@workspace/db";
+import { headsetsTable, customersTable, locationsTable, qrCodesTable, qrDictionaryTable, locationQrCodeSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -92,17 +92,27 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       return;
     }
 
-    const [qrCodes, dictionary] = await Promise.all([
+    const [qrCodes, dictionary, settings] = await Promise.all([
       db.select().from(qrCodesTable).where(eq(qrCodesTable.locationId, locationId)),
       db.select().from(qrDictionaryTable).where(eq(qrDictionaryTable.customerId, headset.customerId)),
+      db.select().from(locationQrCodeSettingsTable).where(eq(locationQrCodeSettingsTable.locationId, locationId)),
     ]);
+
+    const dictEntryIdByQrValue = new Map(dictionary.map((d) => [d.qrValue, d.id]));
+    const settingsMap = new Map(settings.map((s) => [s.qrDictionaryEntryId, s.enabled]));
+
+    const enabledQrCodes = qrCodes.filter((qr) => {
+      const entryId = dictEntryIdByQrValue.get(qr.qrValue);
+      if (!entryId) return true;
+      return settingsMap.get(entryId) ?? true;
+    });
 
     const nameMap = new Map(dictionary.map((d) => [d.qrValue, d.name]));
 
     res.json({
       locationId: location.id,
       locationName: location.name,
-      qrCodes: qrCodes.map((r) => {
+      qrCodes: enabledQrCodes.map((r) => {
         const name = nameMap.get(r.qrValue);
         return {
           qrValue: r.qrValue,

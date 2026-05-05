@@ -134,6 +134,22 @@ export const insertQrDictionarySchema = createInsertSchema(qrDictionaryTable).om
 export type InsertQrDictionary = z.infer<typeof insertQrDictionarySchema>;
 export type QrDictionaryEntry = typeof qrDictionaryTable.$inferSelect;
 
+/* ── Per-location QR Code Settings (enabled/disabled per dictionary entry) ── */
+export const locationQrCodeSettingsTable = pgTable(
+  "location_qr_code_settings",
+  {
+    id: text("id").primaryKey(),
+    locationId: text("location_id").notNull().references(() => locationsTable.id, { onDelete: "cascade" }),
+    qrDictionaryEntryId: text("qr_dictionary_entry_id").notNull().references(() => qrDictionaryTable.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+  },
+  (t) => [uniqueIndex("loc_qr_settings_loc_entry_idx").on(t.locationId, t.qrDictionaryEntryId)],
+);
+
+export const insertLocationQrCodeSettingSchema = createInsertSchema(locationQrCodeSettingsTable);
+export type InsertLocationQrCodeSetting = z.infer<typeof insertLocationQrCodeSettingSchema>;
+export type LocationQrCodeSetting = typeof locationQrCodeSettingsTable.$inferSelect;
+
 /* ── Point-to Events (persisted during live sessions) ── */
 export const pointToEventsTable = pgTable("point_to_events", {
   id: text("id").primaryKey(),

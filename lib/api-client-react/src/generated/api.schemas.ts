@@ -284,6 +284,38 @@ export interface TranscriptChunkBody {
   text: string;
 }
 
+export interface LocationQrCodeSettingEntry {
+  qrDictionaryEntryId: string;
+  qrValue: string;
+  name: string;
+  enabled: boolean;
+  posX?: number;
+  posY?: number;
+  posZ?: number;
+  rotX?: number;
+  rotY?: number;
+  rotZ?: number;
+  rotW?: number;
+  calibratedAt?: string;
+  headsetId?: string;
+}
+
+export interface LocationQrCodeSettingsView {
+  locationId: string;
+  locationName: string;
+  entries: LocationQrCodeSettingEntry[];
+}
+
+export interface SetQrCodeSettingBody {
+  enabled: boolean;
+}
+
+export interface QrCodeSettingResult {
+  locationId: string;
+  qrDictionaryEntryId: string;
+  enabled: boolean;
+}
+
 export interface SessionHistoryItem {
   id: string;
   headsetId: string;

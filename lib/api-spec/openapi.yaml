@@ -258,6 +258,55 @@ paths:
                     type: boolean
                 required: [ok]
 
+  /locations/{locationId}/qr-code-settings:
+    get:
+      operationId: getLocationQrCodeSettings
+      tags: [locations]
+      summary: Get all dictionary entries for a location merged with calibration data and enabled status (admin-facing)
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Merged view of dictionary entries, calibration data, and enabled flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationQrCodeSettingsView"
+
+  /locations/{locationId}/qr-code-settings/{qrDictionaryEntryId}:
+    put:
+      operationId: setLocationQrCodeSetting
+      tags: [locations]
+      summary: Enable or disable a dictionary entry for a specific location
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: qrDictionaryEntryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetQrCodeSettingBody"
+      responses:
+        "200":
+          description: Updated setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrCodeSettingResult"
+
   /locations/{locationId}/qr-codes:
     get:
       operationId: getLocationQrCodes
@@ -1070,6 +1119,68 @@ components:
         text:
           type: string
       required: [speaker, text]
+
+    LocationQrCodeSettingEntry:
+      type: object
+      properties:
+        qrDictionaryEntryId:
+          type: string
+        qrValue:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        posX:
+          type: number
+        posY:
+          type: number
+        posZ:
+          type: number
+        rotX:
+          type: number
+        rotY:
+          type: number
+        rotZ:
+          type: number
+        rotW:
+          type: number
+        calibratedAt:
+          type: string
+        headsetId:
+          type: string
+      required: [qrDictionaryEntryId, qrValue, name, enabled]
+
+    LocationQrCodeSettingsView:
+      type: object
+      properties:
+        locationId:
+          type: string
+        locationName:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LocationQrCodeSettingEntry"
+      required: [locationId, locationName, entries]
+
+    SetQrCodeSettingBody:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required: [enabled]
+
+    QrCodeSettingResult:
+      type: object
+      properties:
+        locationId:
+          type: string
+        qrDictionaryEntryId:
+          type: string
+        enabled:
+          type: boolean
+      required: [locationId, qrDictionaryEntryId, enabled]
 
     SessionHistoryItem:
       type: object
