@@ -7,6 +7,7 @@ import {
   useSetLocationQrCodeSetting,
   useClearLocationQrCodes,
   getGetLocationQrCodeSettingsQueryKey,
+  LocationQrCodeSettingsView,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -36,7 +37,6 @@ export default function AdminQrLocation() {
 
   const [clearing, setClearing] = useState(false);
   const [clearMsg, setClearMsg] = useState("");
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const locationData = settingsQuery.data;
   const entries = locationData?.entries ?? [];
@@ -48,17 +48,33 @@ export default function AdminQrLocation() {
     .filter((e) => !!e.calibratedAt)
     .sort((a, b) => new Date(b.calibratedAt!).getTime() - new Date(a.calibratedAt!).getTime())[0];
 
+  const queryKey = getGetLocationQrCodeSettingsQueryKey(locationId);
+
   const handleToggle = async (qrDictionaryEntryId: string, currentEnabled: boolean) => {
-    setTogglingId(qrDictionaryEntryId);
+    const previous = queryClient.getQueryData<LocationQrCodeSettingsView>(queryKey);
+
+    queryClient.setQueryData<LocationQrCodeSettingsView>(queryKey, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        entries: old.entries.map((e) =>
+          e.qrDictionaryEntryId === qrDictionaryEntryId
+            ? { ...e, enabled: !currentEnabled }
+            : e
+        ),
+      };
+    });
+
     try {
       await setSettingMutation.mutateAsync({
         locationId,
         qrDictionaryEntryId,
         data: { enabled: !currentEnabled },
       });
-      await queryClient.invalidateQueries({ queryKey: getGetLocationQrCodeSettingsQueryKey(locationId) });
+    } catch {
+      queryClient.setQueryData(queryKey, previous);
     } finally {
-      setTogglingId(null);
+      queryClient.invalidateQueries({ queryKey });
     }
   };
 
@@ -67,7 +83,7 @@ export default function AdminQrLocation() {
     setClearMsg("");
     try {
       await clearMutation.mutateAsync({ locationId });
-      await queryClient.invalidateQueries({ queryKey: getGetLocationQrCodeSettingsQueryKey(locationId) });
+      await queryClient.invalidateQueries({ queryKey });
       setClearMsg("Calibration cleared");
       setTimeout(() => setClearMsg(""), 3000);
     } catch {
@@ -181,7 +197,6 @@ export default function AdminQrLocation() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {entries.map((entry) => {
-                        const isToggling = togglingId === entry.qrDictionaryEntryId;
                         const isDisabled = !entry.enabled;
                         return (
                           <tr
@@ -191,12 +206,9 @@ export default function AdminQrLocation() {
                             <td className="px-4 py-3">
                               <button
                                 onClick={() => handleToggle(entry.qrDictionaryEntryId, entry.enabled)}
-                                disabled={isToggling}
                                 title={entry.enabled ? "Disable for this location" : "Enable for this location"}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed ${
-                                  entry.enabled
-                                    ? "bg-primary"
-                                    : "bg-muted-foreground/30"
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
+                                  entry.enabled ? "bg-primary" : "bg-muted-foreground/30"
                                 }`}
                               >
                                 <span
@@ -207,16 +219,25 @@ export default function AdminQrLocation() {
                               </button>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="font-medium text-foreground">{entry.name}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-foreground">{entry.name}</span>
+                                {isDisabled && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                                    Disabled for this location
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3">
                               <span className="font-mono text-xs bg-muted rounded px-2 py-1 text-foreground">{entry.qrValue}</span>
                             </td>
                             <td className="px-4 py-3">
                               {entry.calibratedAt ? (
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{relativeTime(entry.calibratedAt)}</span>
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                  Calibrated {relativeTime(entry.calibratedAt)}
+                                </span>
                               ) : (
-                                <span className="text-xs text-muted-foreground italic">Not calibrated</span>
+                                <span className="text-xs text-muted-foreground italic">Not yet calibrated</span>
                               )}
                             </td>
                             <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
