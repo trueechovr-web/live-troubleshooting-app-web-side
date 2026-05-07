@@ -9,7 +9,7 @@ import {
   useListQrDictionary,
   getGetLocationQrCodesQueryOptions,
 } from "@workspace/api-client-react";
-import type { PointToItem } from "@workspace/api-client-react";
+import type { PointToItem, PointToChild } from "@workspace/api-client-react";
 import { useQueryClient, useQueries } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -147,7 +147,7 @@ export default function AdminPointToObjects() {
         const children = (it.children ?? []).filter((c) => c.label.trim().length > 0);
         return { label, children };
       })
-      .filter((it): it is PointToItem => it !== null);
+      .filter((it): it is { label: string; children: PointToChild[] } => it !== null);
 
     const dupe = cleaned.map((it) => it.label.toLowerCase()).find((l, i, arr) => arr.indexOf(l) !== i);
     if (dupe) { setSaveMessage(`Duplicate category: "${dupe}"`); return; }

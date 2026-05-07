@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tevr-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tevr
+    ports:
+      - "5433:5432"
+    volumes:
+      - tevr-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tevr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tevr-postgres-data:

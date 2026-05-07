@@ -6,6 +6,14 @@ import { pointToEventsTable, sessionsTable, headsetsTable } from "@workspace/db"
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+type RTCSessionDescriptionInit = { type: "answer" | "offer" | "pranswer" | "rollback"; sdp?: string };
+type RTCIceCandidateInit = {
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+  usernameFragment?: string | null;
+};
+
 interface RoomPeer {
   socketId: string;
   role: "admin" | "tech" | "headset";
