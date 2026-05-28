@@ -6,6 +6,10 @@ import { pointToEventsTable, sessionsTable, headsetsTable, qrCodesTable, qrDicti
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+// RTC types are DOM-only; declare minimal shapes for Node.js context
+interface RTCSessionDescriptionInit { type: string; sdp?: string }
+interface RTCIceCandidateInit { candidate?: string; sdpMLineIndex?: number | null; sdpMid?: string | null; usernameFragment?: string | null }
+
 interface RoomPeer {
   socketId: string;
   role: "admin" | "tech" | "headset";

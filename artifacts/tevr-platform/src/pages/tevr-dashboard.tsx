@@ -62,6 +62,25 @@ export default function TevrDashboard() {
           ))}
         </div>
 
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Developer Tools</h2>
+          <button
+            data-testid="headset-simulator-link"
+            onClick={() => setLocation("/tevr/debug/headset-simulator")}
+            className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card px-5 py-4 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors group"
+          >
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-muted-foreground group-hover:text-primary transition-colors">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Headset Simulator</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Impersonate a Meta Quest headset in the browser — debug socket events and point-to payloads without hardware</p>
+            </div>
+          </button>
+        </div>
+
         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold text-foreground">Customer Accounts</h2>

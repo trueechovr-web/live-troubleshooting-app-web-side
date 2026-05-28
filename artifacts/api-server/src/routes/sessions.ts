@@ -46,7 +46,7 @@ async function generateSessionSummary(
 
 const router = Router();
 
-const formatSession = (s: typeof sessionsTable.$inferSelect & { headsetLabel?: string }) => ({
+const formatSession = (s: typeof sessionsTable.$inferSelect & { headsetLabel?: string | null }) => ({
   ...s,
   headsetLabel: s.headsetLabel ?? s.headsetId,
   startedAt: s.startedAt?.toISOString(),
@@ -66,6 +66,10 @@ router.get("/sessions", async (_req, res) => {
         roomCode: sessionsTable.roomCode,
         startedAt: sessionsTable.startedAt,
         endedAt: sessionsTable.endedAt,
+        transcript: sessionsTable.transcript,
+        summary: sessionsTable.summary,
+        adminNotes: sessionsTable.adminNotes,
+        resolved: sessionsTable.resolved,
       })
       .from(sessionsTable)
       .leftJoin(headsetsTable, eq(sessionsTable.headsetId, headsetsTable.id))
@@ -123,6 +127,10 @@ router.get("/sessions/:sessionId", async (req, res) => {
         roomCode: sessionsTable.roomCode,
         startedAt: sessionsTable.startedAt,
         endedAt: sessionsTable.endedAt,
+        transcript: sessionsTable.transcript,
+        summary: sessionsTable.summary,
+        adminNotes: sessionsTable.adminNotes,
+        resolved: sessionsTable.resolved,
       })
       .from(sessionsTable)
       .leftJoin(headsetsTable, eq(sessionsTable.headsetId, headsetsTable.id))

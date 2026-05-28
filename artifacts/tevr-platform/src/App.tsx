@@ -16,6 +16,7 @@ import AdminQrLocation from "@/pages/admin-qr-location";
 import AdminLocationSetup from "@/pages/admin-location-setup";
 import AdminTechSetup from "@/pages/admin-tech-setup";
 import AdminSessionHistory from "@/pages/admin-session-history";
+import DebugHeadsetSimulator from "@/pages/debug-headset-simulator";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
 
@@ -35,6 +36,7 @@ function Router() {
 
       {/* TEVR Admin Operations */}
       <Route path="/tevr" component={TevrDashboard} />
+      <Route path="/tevr/debug/headset-simulator" component={DebugHeadsetSimulator} />
       <Route path="/tevr/:customerId" component={AdminHome} />
       <Route path="/tevr/:customerId/troubleshoot" component={AdminTroubleshoot} />
       <Route path="/tevr/:customerId/session/:sessionId" component={AdminSession} />

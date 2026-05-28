@@ -52,6 +52,17 @@ import type {
 import { customFetch } from "../custom-fetch";
 import type { ErrorType, BodyType } from "../custom-fetch";
 
+// Orval provides a default queryKey for every hook, so callers don't need to supply one.
+// TanStack Query v5 marks queryKey as required in UseQueryOptions — this alias relaxes that.
+type PartialQueryOptions<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey,
+> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey"> & {
+  queryKey?: TQueryKey;
+};
+
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
@@ -82,7 +93,7 @@ export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -117,7 +128,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -157,7 +168,7 @@ export const getListCustomersQueryOptions = <
   TData = Awaited<ReturnType<typeof listCustomers>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof listCustomers>>,
     TError,
     TData
@@ -192,7 +203,7 @@ export function useListCustomers<
   TData = Awaited<ReturnType<typeof listCustomers>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof listCustomers>>,
     TError,
     TData
@@ -321,7 +332,7 @@ export const getGetCustomerQueryOptions = <
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getCustomer>>,
       TError,
       TData
@@ -364,7 +375,7 @@ export function useGetCustomer<
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getCustomer>>,
       TError,
       TData
@@ -586,7 +597,7 @@ export const getGetSessionHistoryQueryOptions = <
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSessionHistory>>,
       TError,
       TData
@@ -631,7 +642,7 @@ export function useGetSessionHistory<
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSessionHistory>>,
       TError,
       TData
@@ -675,7 +686,7 @@ export const getListLocationsQueryOptions = <
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listLocations>>,
       TError,
       TData
@@ -719,7 +730,7 @@ export function useListLocations<
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listLocations>>,
       TError,
       TData
@@ -1058,7 +1069,7 @@ export const getGetLocationQrCodeSettingsQueryOptions = <
 >(
   locationId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
       TError,
       TData
@@ -1103,7 +1114,7 @@ export function useGetLocationQrCodeSettings<
 >(
   locationId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getLocationQrCodeSettings>>,
       TError,
       TData
@@ -1270,7 +1281,7 @@ export const getGetLocationQrCodesQueryOptions = <
 >(
   locationId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getLocationQrCodes>>,
       TError,
       TData
@@ -1315,7 +1326,7 @@ export function useGetLocationQrCodes<
 >(
   locationId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getLocationQrCodes>>,
       TError,
       TData
@@ -1533,7 +1544,7 @@ export const getListQrDictionaryQueryOptions = <
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listQrDictionary>>,
       TError,
       TData
@@ -1578,7 +1589,7 @@ export function useListQrDictionary<
 >(
   customerId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listQrDictionary>>,
       TError,
       TData
@@ -1931,7 +1942,7 @@ export const getListHeadsetsQueryOptions = <
 >(
   params?: ListHeadsetsParams,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listHeadsets>>,
       TError,
       TData
@@ -1969,7 +1980,7 @@ export function useListHeadsets<
 >(
   params?: ListHeadsetsParams,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listHeadsets>>,
       TError,
       TData
@@ -2013,7 +2024,7 @@ export const getGetHeadsetQueryOptions = <
 >(
   headsetId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getHeadset>>,
       TError,
       TData
@@ -2056,7 +2067,7 @@ export function useGetHeadset<
 >(
   headsetId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getHeadset>>,
       TError,
       TData
@@ -2126,7 +2137,7 @@ export const getGetHeadsetStartupDataQueryOptions = <
   headsetId: string,
   params: GetHeadsetStartupDataParams,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getHeadsetStartupData>>,
       TError,
       TData
@@ -2173,7 +2184,7 @@ export function useGetHeadsetStartupData<
   headsetId: string,
   params: GetHeadsetStartupDataParams,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getHeadsetStartupData>>,
       TError,
       TData
@@ -2218,7 +2229,7 @@ export const getListSessionsQueryOptions = <
   TData = Awaited<ReturnType<typeof listSessions>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof listSessions>>,
     TError,
     TData
@@ -2253,7 +2264,7 @@ export function useListSessions<
   TData = Awaited<ReturnType<typeof listSessions>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof listSessions>>,
     TError,
     TData
@@ -2382,7 +2393,7 @@ export const getGetSessionQueryOptions = <
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSession>>,
       TError,
       TData
@@ -2425,7 +2436,7 @@ export function useGetSession<
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSession>>,
       TError,
       TData
@@ -2553,7 +2564,7 @@ export const getListMessagesQueryOptions = <
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listMessages>>,
       TError,
       TData
@@ -2596,7 +2607,7 @@ export function useListMessages<
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof listMessages>>,
       TError,
       TData
@@ -2727,7 +2738,7 @@ export const getGetSessionPointToEventsQueryOptions = <
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSessionPointToEvents>>,
       TError,
       TData
@@ -2772,7 +2783,7 @@ export function useGetSessionPointToEvents<
 >(
   sessionId: string,
   options?: {
-    query?: UseQueryOptions<
+    query?: PartialQueryOptions<
       Awaited<ReturnType<typeof getSessionPointToEvents>>,
       TError,
       TData
@@ -2990,7 +3001,7 @@ export const getGetDashboardSummaryQueryOptions = <
   TData = Awaited<ReturnType<typeof getDashboardSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof getDashboardSummary>>,
     TError,
     TData
@@ -3025,7 +3036,7 @@ export function useGetDashboardSummary<
   TData = Awaited<ReturnType<typeof getDashboardSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<
+  query?: PartialQueryOptions<
     Awaited<ReturnType<typeof getDashboardSummary>>,
     TError,
     TData

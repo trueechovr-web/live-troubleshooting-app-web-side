@@ -141,7 +141,7 @@ export default function AdminPointToObjects() {
   const handleSave = () => {
     if (!customerId) return;
     const cleaned: PointToItem[] = items
-      .map((it) => {
+      .map((it): PointToItem | null => {
         const label = it.label.trim();
         if (!label) return null;
         const children = (it.children ?? []).filter((c) => c.label.trim().length > 0);
