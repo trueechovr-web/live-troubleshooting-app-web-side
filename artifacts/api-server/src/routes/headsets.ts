@@ -208,11 +208,6 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       .where(eq(headsetsTable.id, req.params.headsetId));
     if (!headset) { res.status(404).json({ error: "Headset not found" }); return; }
 
-    // Mark the headset as online and refresh lastSeen
-    await db.update(headsetsTable)
-      .set({ status: "online", lastSeen: new Date() })
-      .where(eq(headsetsTable.id, headset.id));
-
     const [location] = await db
       .select()
       .from(locationsTable)
@@ -224,6 +219,11 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       res.status(403).json({ error: "Location does not belong to the headset's customer" });
       return;
     }
+
+    // All validation passed — mark the headset online and refresh lastSeen
+    await db.update(headsetsTable)
+      .set({ status: "online", lastSeen: new Date() })
+      .where(eq(headsetsTable.id, headset.id));
 
     const [qrCodes, dictionary, settings] = await Promise.all([
       db.select().from(qrCodesTable).where(eq(qrCodesTable.locationId, locationId)),
