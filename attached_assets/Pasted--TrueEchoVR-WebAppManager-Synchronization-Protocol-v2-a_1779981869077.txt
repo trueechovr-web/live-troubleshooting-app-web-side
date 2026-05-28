@@ -1,0 +1,45 @@
+# TrueEchoVR WebAppManager Synchronization Protocol (v2 - aligned with Replit)
+
+This document outlines the communication protocol between the Unity application (TrueEchoVR) and the Replit backend. Use this to synchronize the Replit AI's messaging and streaming logic.
+
+## 1. Connection Endpoints
+- **WebSocket (Socket.io):** `wss://live-troubleshooting-app.replit.app/socket.io/?EIO=4&transport=websocket`
+- **REST API (Persistence):** `https://live-troubleshooting-app.replit.app/api`
+
+## 2. Real-time Signaling (Socket.io)
+The Unity application uses **Socket.io-style framing** for WebSocket messages. Every message is prefixed with `42` followed by a JSON array: `42["event-name", {payload}]`.
+
+### Outgoing (Unity to Replit)
+| Event Name | Payload Structure | Description |
+| :--- | :--- | :--- |
+| `join-room` | `{ "role": "headset", "roomCode": "STR", "locationId": "STR" }` | Headset registration. |
+| `chat-message` | `{ "text": "STR" }` | Text message sent by user. |
+| `answer` | `{ "offer": { "sdp": "STR", "type": "answer" }, "targetSocketId": "STR" }` | WebRTC Answer targeting the Admin. |
+| `ice-candidate`| `{ "candidate": "STR", "sdpMid": "STR", "sdpMLineIndex": INT, "targetSocketId": "STR" }` | Detailed WebRTC ICE data. |
+
+### Incoming (Replit to Unity)
+| Event Name | Payload Structure | Description |
+| :--- | :--- | :--- |
+| `peer-joined` | `{ "role": "admin", "socketId": "STR" }` | Admin connection notification. |
+| `offer` | `{ "offer": { "sdp": "STR", "type": "offer" }, "fromSocketId": "STR" }` | WebRTC SDP offer from expert console. |
+| `chat-message` | `{ "text": "STR" }` | Text message from expert console. |
+| `point-to` | `{ "name": "STR", "qrCode": "STR", "pose": "STR" }` | Calibration-aware highlight command. |
+
+## 3. Data Persistence (REST API)
+Headsets should use REST for persistent data exchange to ensure storage in the PostgreSQL backend.
+
+| Method | Endpoint | Payload | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/headsets/{id}/startup-data` | Query: `locationId` | Fetches name dictionary + spatial QRs. |
+| `PUT` | `/api/locations/{id}/qr-codes` | Array of QR data objects | Atomic update of location calibration. |
+| `POST` | `/api/sessions/{id}/transcript-chunk`| `{ "speaker": "headset", "text": "STR" }`| (Premium) Deepgram transcription sync. |
+
+## 4. WebRTC Requirements
+- **ICE Configuration:** Headset uses Google STUN servers by default.
+- **Payload types:** Headset acts as the primary Producer. Admin role is the Consumer.
+- **Constraints:** Quest 3 hardware prevents direct raw camera access; Unity sends a Capture RenderTexture.
+
+## 5. Identification
+- **LocationID:** Critical for spatial calibration routing.
+- **HeadsetID:** Unique identifier per device (default: `quest-3-unit-01`).
+- **RoomCode:** Transient session identifier for signaling routing.
