@@ -2,13 +2,14 @@ import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
-import { pointToEventsTable, sessionsTable, headsetsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { pointToEventsTable, sessionsTable, headsetsTable, qrCodesTable, qrDictionaryTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 interface RoomPeer {
   socketId: string;
   role: "admin" | "tech" | "headset";
+  locationId?: string;
 }
 
 const rooms = new Map<string, RoomPeer[]>();
@@ -25,20 +26,21 @@ export function setupSocketIO(httpServer: HttpServer) {
   io.on("connection", (socket) => {
     logger.info({ socketId: socket.id }, "Socket connected");
 
-    socket.on("join-room", ({ roomCode, role }: { roomCode: string; role: "admin" | "tech" | "headset" }) => {
+    socket.on("join-room", ({ roomCode, role, locationId }: { roomCode: string; role: "admin" | "tech" | "headset"; locationId?: string }) => {
       if (!roomCode || !role) return;
 
       const peers = rooms.get(roomCode) ?? [];
       const existing = peers.find((p) => p.role === role);
       if (existing) {
         existing.socketId = socket.id;
+        if (locationId) existing.locationId = locationId;
       } else {
-        peers.push({ socketId: socket.id, role });
+        peers.push({ socketId: socket.id, role, locationId });
       }
       rooms.set(roomCode, peers);
 
       socket.join(roomCode);
-      logger.info({ roomCode, role, socketId: socket.id }, "Peer joined room");
+      logger.info({ roomCode, role, socketId: socket.id, locationId }, "Peer joined room");
 
       socket.to(roomCode).emit("peer-joined", { role, socketId: socket.id });
       socket.emit("room-peers", peers.filter((p) => p.socketId !== socket.id));
@@ -66,11 +68,9 @@ export function setupSocketIO(httpServer: HttpServer) {
 
     socket.on("battery-update", ({ roomCode, batteryLevel }: { roomCode: string; batteryLevel: number }) => {
       if (typeof batteryLevel !== "number" || batteryLevel < 0 || batteryLevel > 100) return;
-      // Only the headset peer in this room may send battery updates
       const peers = rooms.get(roomCode) ?? [];
       const sender = peers.find((p) => p.socketId === socket.id);
       if (!sender || sender.role !== "headset") return;
-      // Persist first, then broadcast to other peers on success
       db.select({ headsetId: sessionsTable.headsetId })
         .from(sessionsTable)
         .where(eq(sessionsTable.roomCode, roomCode))
@@ -87,20 +87,68 @@ export function setupSocketIO(httpServer: HttpServer) {
     });
 
     socket.on("point-to", ({ roomCode, objectName }: { roomCode: string; objectName: string }) => {
-      socket.to(roomCode).emit("point-to", { objectName });
-      if (objectName) {
+      const peers = rooms.get(roomCode) ?? [];
+      const headset = peers.find((p) => p.role === "headset");
+      const locationId = headset?.locationId;
+
+      const persistPointTo = (sessionId: string) => {
+        db.insert(pointToEventsTable)
+          .values({ id: randomUUID(), sessionId, objectName })
+          .catch((err) => logger.error({ err }, "Failed to persist point-to event"));
+      };
+
+      const lookupSession = () =>
         db.select({ id: sessionsTable.id })
           .from(sessionsTable)
           .where(eq(sessionsTable.roomCode, roomCode))
-          .then(([session]) => {
-            if (session) {
-              db.insert(pointToEventsTable)
-                .values({ id: randomUUID(), sessionId: session.id, objectName })
-                .catch((err) => logger.error({ err }, "Failed to persist point-to event"));
-            }
-          })
+          .then(([session]) => { if (session) persistPointTo(session.id); })
           .catch((err) => logger.error({ err }, "Failed to look up session for point-to event"));
+
+      if (!locationId || !objectName) {
+        socket.to(roomCode).emit("point-to", { name: objectName });
+        if (objectName) lookupSession();
+        return;
       }
+
+      db.select({
+        qrValue: qrCodesTable.qrValue,
+        posX: qrCodesTable.posX,
+        posY: qrCodesTable.posY,
+        posZ: qrCodesTable.posZ,
+        rotX: qrCodesTable.rotX,
+        rotY: qrCodesTable.rotY,
+        rotZ: qrCodesTable.rotZ,
+        rotW: qrCodesTable.rotW,
+      })
+        .from(qrCodesTable)
+        .innerJoin(qrDictionaryTable, eq(qrCodesTable.qrValue, qrDictionaryTable.qrValue))
+        .where(
+          and(
+            eq(qrCodesTable.locationId, locationId),
+            eq(qrDictionaryTable.name, objectName),
+          )
+        )
+        .limit(1)
+        .then(([row]) => {
+          if (row) {
+            socket.to(roomCode).emit("point-to", {
+              name: objectName,
+              qrCode: row.qrValue,
+              pose: {
+                position: { x: row.posX, y: row.posY, z: row.posZ },
+                rotation: { x: row.rotX, y: row.rotY, z: row.rotZ, w: row.rotW },
+              },
+            });
+          } else {
+            socket.to(roomCode).emit("point-to", { name: objectName });
+          }
+          lookupSession();
+        })
+        .catch((err) => {
+          logger.error({ err }, "Failed to look up point-to spatial data — falling back");
+          socket.to(roomCode).emit("point-to", { name: objectName });
+          lookupSession();
+        });
     });
 
     socket.on("disconnect", () => {
