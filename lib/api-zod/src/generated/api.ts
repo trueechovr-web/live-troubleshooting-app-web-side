@@ -640,6 +640,7 @@ export const updateHeadsetBodyLabelMax = 100;
 export const UpdateHeadsetBody = zod.object({
   label: zod.string().min(1).max(updateHeadsetBodyLabelMax).optional(),
   firmwareVersion: zod.string().optional(),
+  status: zod.enum(["online", "offline", "busy"]).optional(),
 });
 
 export const UpdateHeadsetResponse = zod.object({

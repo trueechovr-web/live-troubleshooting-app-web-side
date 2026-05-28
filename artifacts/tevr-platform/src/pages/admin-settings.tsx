@@ -89,6 +89,23 @@ export default function AdminSettings() {
     },
   ];
 
+  const tevrSections = [
+    {
+      id: "headset-management",
+      title: "Headset Management",
+      description:
+        "View all registered headsets, check their online status, rename them, or remove decommissioned devices.",
+      icon: (
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
+        </svg>
+      ),
+      path: `${base}/${customerId}/headsets`,
+      colorClass: "text-teal-600 bg-teal-50 border-teal-200 dark:text-teal-400 dark:bg-teal-950/50 dark:border-teal-900",
+      ctaClass: "text-teal-600 dark:text-teal-400",
+    },
+  ];
+
   const headerSubtitle = isTevrMode ? "TEVR Operations" : "Location and QR Code Management";
   const sessionHistoryEnabled = customer.data?.sessionHistoryEnabled ?? false;
 
@@ -172,6 +189,39 @@ export default function AdminSettings() {
             ))}
           </div>
         </div>
+
+        {isTevrMode && (
+          <div>
+            <div className="mb-5">
+              <h2 className="text-base font-semibold text-foreground mb-1">Device Management</h2>
+              <p className="text-sm text-muted-foreground">TEVR-only tools for managing this customer's hardware.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {tevrSections.map((section) => (
+                <button
+                  key={section.id}
+                  data-testid={`section-${section.id}`}
+                  onClick={() => setLocation(section.path)}
+                  className="group flex flex-col gap-5 rounded-xl border border-border bg-card p-7 text-left shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+                >
+                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center border ${section.colorClass}`}>
+                    {section.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-base font-semibold text-foreground mb-1.5">{section.title}</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{section.description}</p>
+                  </div>
+                  <div className={`flex items-center gap-1 text-sm font-medium ${section.ctaClass}`}>
+                    <span>Open</span>
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isTevrMode && (
           <div>

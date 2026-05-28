@@ -1333,4 +1333,7 @@ components:
           maxLength: 100
         firmwareVersion:
           type: string
+        status:
+          type: string
+          enum: [online, offline, busy]
       minProperties: 1

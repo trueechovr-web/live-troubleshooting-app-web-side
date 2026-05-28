@@ -343,6 +343,15 @@ export interface RegisterHeadsetBody {
   label?: string;
 }
 
+export type PatchHeadsetBodyStatus =
+  (typeof PatchHeadsetBodyStatus)[keyof typeof PatchHeadsetBodyStatus];
+
+export const PatchHeadsetBodyStatus = {
+  online: "online",
+  offline: "offline",
+  busy: "busy",
+} as const;
+
 export interface PatchHeadsetBody {
   /**
    * @minLength 1
@@ -350,6 +359,7 @@ export interface PatchHeadsetBody {
    */
   label?: string;
   firmwareVersion?: string;
+  status?: PatchHeadsetBodyStatus;
 }
 
 export type DeleteLocation200 = {

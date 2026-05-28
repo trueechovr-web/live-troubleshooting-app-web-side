@@ -55,16 +55,7 @@ import type {
 import { customFetch } from "../custom-fetch";
 import type { ErrorType, BodyType } from "../custom-fetch";
 
-// Orval provides a default queryKey for every hook, so callers don't need to supply one.
-// TanStack Query v5 marks queryKey as required in UseQueryOptions — this alias relaxes that.
-type PartialQueryOptions<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
-> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey"> & {
-  queryKey?: TQueryKey;
-};
+type PartialQueryOptions<T, E, D = T> = Omit<UseQueryOptions<T, E, D>, 'queryKey'> & { queryKey?: UseQueryOptions<T, E, D>['queryKey'] };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { headsetsTable, customersTable, locationsTable, qrCodesTable, qrDictionaryTable, locationQrCodeSettingsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { headsetsTable, customersTable, locationsTable, qrCodesTable, qrDictionaryTable, locationQrCodeSettingsTable, sessionsTable, messagesTable, pointToEventsTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const router = Router();
@@ -134,16 +134,17 @@ router.get("/headsets/:headsetId", async (req, res) => {
 /* ── PATCH /headsets/:headsetId ── */
 router.patch("/headsets/:headsetId", async (req, res) => {
   try {
-    const { label, firmwareVersion } = req.body as { label?: string; firmwareVersion?: string };
+    const { label, firmwareVersion, status } = req.body as { label?: string; firmwareVersion?: string; status?: "online" | "offline" | "busy" };
 
-    if (!label && !firmwareVersion) {
-      res.status(400).json({ error: "At least one of label or firmwareVersion is required" });
+    if (!label && !firmwareVersion && !status) {
+      res.status(400).json({ error: "At least one of label, firmwareVersion, or status is required" });
       return;
     }
 
-    const updates: Partial<{ label: string; firmwareVersion: string }> = {};
+    const updates: Partial<{ label: string; firmwareVersion: string; status: "online" | "offline" | "busy" }> = {};
     if (label) updates.label = label;
     if (firmwareVersion) updates.firmwareVersion = firmwareVersion;
+    if (status) updates.status = status;
 
     const [updated] = await db
       .update(headsetsTable)
@@ -164,12 +165,27 @@ router.patch("/headsets/:headsetId", async (req, res) => {
 /* ── DELETE /headsets/:headsetId ── */
 router.delete("/headsets/:headsetId", async (req, res) => {
   try {
-    const [deleted] = await db
-      .delete(headsetsTable)
-      .where(eq(headsetsTable.id, req.params.headsetId))
-      .returning({ id: headsetsTable.id });
+    const [headset] = await db
+      .select({ id: headsetsTable.id })
+      .from(headsetsTable)
+      .where(eq(headsetsTable.id, req.params.headsetId));
 
-    if (!deleted) { res.status(404).json({ error: "Headset not found" }); return; }
+    if (!headset) { res.status(404).json({ error: "Headset not found" }); return; }
+
+    // Cascade-delete session dependencies before removing the headset
+    const sessionRows = await db
+      .select({ id: sessionsTable.id })
+      .from(sessionsTable)
+      .where(eq(sessionsTable.headsetId, headset.id));
+
+    if (sessionRows.length > 0) {
+      const sessionIds = sessionRows.map((s) => s.id);
+      await db.delete(pointToEventsTable).where(inArray(pointToEventsTable.sessionId, sessionIds));
+      await db.delete(messagesTable).where(inArray(messagesTable.sessionId, sessionIds));
+      await db.delete(sessionsTable).where(inArray(sessionsTable.id, sessionIds));
+    }
+
+    await db.delete(headsetsTable).where(eq(headsetsTable.id, headset.id));
 
     res.json({ ok: true });
   } catch (err) {
@@ -191,6 +207,11 @@ router.get("/headsets/:headsetId/startup-data", async (req, res) => {
       .from(headsetsTable)
       .where(eq(headsetsTable.id, req.params.headsetId));
     if (!headset) { res.status(404).json({ error: "Headset not found" }); return; }
+
+    // Mark the headset as online and refresh lastSeen
+    await db.update(headsetsTable)
+      .set({ status: "online", lastSeen: new Date() })
+      .where(eq(headsetsTable.id, headset.id));
 
     const [location] = await db
       .select()
