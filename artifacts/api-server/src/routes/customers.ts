@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { customersTable, insertCustomerSchema } from "@workspace/db";
+import { customersTable, headsetsTable, insertCustomerSchema } from "@workspace/db";
 import { UpdateCustomerPointToObjectsBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -86,6 +86,36 @@ router.put("/customers/:customerId/feature-flags", async (req, res) => {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: "Failed to update feature flags" });
+  }
+});
+
+router.get("/customers/:customerId/headsets", async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        id: headsetsTable.id,
+        serialNumber: headsetsTable.serialNumber,
+        label: headsetsTable.label,
+        customerId: headsetsTable.customerId,
+        customerName: customersTable.name,
+        status: headsetsTable.status,
+        batteryLevel: headsetsTable.batteryLevel,
+        firmwareVersion: headsetsTable.firmwareVersion,
+        lastSeen: headsetsTable.lastSeen,
+      })
+      .from(headsetsTable)
+      .leftJoin(customersTable, eq(headsetsTable.customerId, customersTable.id))
+      .where(eq(headsetsTable.customerId, req.params.customerId));
+
+    res.json(
+      rows.map((h) => ({
+        ...h,
+        customerName: h.customerName ?? "Unknown",
+        lastSeen: h.lastSeen?.toISOString(),
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch customer headsets" });
   }
 });
 

@@ -470,6 +470,52 @@ paths:
                     type: boolean
                 required: [ok]
 
+  /customers/{customerId}/headsets:
+    get:
+      operationId: listCustomerHeadsets
+      tags: [headsets]
+      summary: List all headsets for a specific customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of headsets for the customer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Headset"
+
+  /headsets/register:
+    post:
+      operationId: registerHeadset
+      tags: [headsets]
+      summary: Register a headset (idempotent — returns existing record if already registered)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterHeadsetBody"
+      responses:
+        "200":
+          description: Existing headset record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Headset"
+        "201":
+          description: Newly registered headset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Headset"
+
   /headsets:
     get:
       operationId: listHeadsets
@@ -512,6 +558,52 @@ paths:
                 $ref: "#/components/schemas/Headset"
         "404":
           description: Headset not found
+    patch:
+      operationId: updateHeadset
+      tags: [headsets]
+      summary: Update a headset's label or firmware version
+      parameters:
+        - name: headsetId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchHeadsetBody"
+      responses:
+        "200":
+          description: Updated headset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Headset"
+        "404":
+          description: Headset not found
+    delete:
+      operationId: deleteHeadset
+      tags: [headsets]
+      summary: Delete a headset
+      parameters:
+        - name: headsetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Headset deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
 
   /headsets/{headsetId}/startup-data:
     get:
@@ -1217,3 +1309,28 @@ components:
         createdAt:
           type: string
       required: [id, sessionId, objectName, createdAt]
+
+    RegisterHeadsetBody:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+          minLength: 1
+        customerId:
+          type: string
+        firmwareVersion:
+          type: string
+        label:
+          type: string
+      required: [serialNumber, customerId]
+
+    PatchHeadsetBody:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        firmwareVersion:
+          type: string
+      minProperties: 1

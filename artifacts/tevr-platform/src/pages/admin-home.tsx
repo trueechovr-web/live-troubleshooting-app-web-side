@@ -58,6 +58,20 @@ export default function AdminHome() {
       ctaClass: "text-amber-600 dark:text-amber-400",
     }] : []),
     {
+      id: "headsets",
+      title: "Headset Management",
+      description: "View all registered headsets, check their status, rename them, or remove decommissioned devices.",
+      icon: (
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+        </svg>
+      ),
+      path: `${base}/${customerId}/headsets`,
+      available: true,
+      colorClass: "text-teal-600 bg-teal-50 border-teal-200 dark:text-teal-400 dark:bg-teal-950/50 dark:border-teal-900",
+      ctaClass: "text-teal-600 dark:text-teal-400",
+    },
+    {
       id: "tech-setup",
       title: "Client Tech Setup",
       description: "Create tech profiles, assign credentials, and control which locations field technicians are authorised to calibrate.",

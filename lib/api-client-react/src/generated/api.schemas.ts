@@ -335,6 +335,23 @@ export interface PointToEvent {
   createdAt: string;
 }
 
+export interface RegisterHeadsetBody {
+  /** @minLength 1 */
+  serialNumber: string;
+  customerId: string;
+  firmwareVersion?: string;
+  label?: string;
+}
+
+export interface PatchHeadsetBody {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  label?: string;
+  firmwareVersion?: string;
+}
+
 export type DeleteLocation200 = {
   ok: boolean;
 };
@@ -359,6 +376,10 @@ export const ListHeadsetsStatus = {
   offline: "offline",
   busy: "busy",
 } as const;
+
+export type DeleteHeadset200 = {
+  ok: boolean;
+};
 
 export type GetHeadsetStartupDataParams = {
   locationId: string;

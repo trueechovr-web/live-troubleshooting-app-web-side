@@ -158,12 +158,27 @@ export function setupSocketIO(httpServer: HttpServer) {
     socket.on("disconnect", () => {
       logger.info({ socketId: socket.id }, "Socket disconnected");
       rooms.forEach((peers, roomCode) => {
+        const leavingPeer = peers.find((p) => p.socketId === socket.id);
         const updated = peers.filter((p) => p.socketId !== socket.id);
         if (updated.length === 0) {
           rooms.delete(roomCode);
         } else {
           rooms.set(roomCode, updated);
           io.to(roomCode).emit("peer-left", { socketId: socket.id });
+        }
+
+        // When a headset disconnects, mark it offline in the DB
+        if (leavingPeer?.role === "headset") {
+          db.select({ headsetId: sessionsTable.headsetId })
+            .from(sessionsTable)
+            .where(eq(sessionsTable.roomCode, roomCode))
+            .then(([session]) => {
+              if (!session) return;
+              return db.update(headsetsTable)
+                .set({ status: "offline" })
+                .where(eq(headsetsTable.id, session.headsetId));
+            })
+            .catch((err) => logger.error({ err }, "Failed to mark headset offline on disconnect"));
         }
       });
     });

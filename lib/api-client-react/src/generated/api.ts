@@ -24,6 +24,7 @@ import type {
   CreateSessionBody,
   Customer,
   DashboardSummary,
+  DeleteHeadset200,
   DeleteLocation200,
   DeleteQrDictionaryEntry200,
   GetHeadsetStartupDataParams,
@@ -36,10 +37,12 @@ import type {
   LocationQrData,
   LocationSummary,
   Message,
+  PatchHeadsetBody,
   PointToEvent,
   PointToObjects,
   QrCodeSettingResult,
   QrDictionaryEntry,
+  RegisterHeadsetBody,
   SendMessageBody,
   Session,
   SessionFeedbackBody,
@@ -1904,6 +1907,181 @@ export const useDeleteQrDictionaryEntry = <
 };
 
 /**
+ * @summary List all headsets for a specific customer
+ */
+export const getListCustomerHeadsetsUrl = (customerId: string) => {
+  return `/api/customers/${customerId}/headsets`;
+};
+
+export const listCustomerHeadsets = async (
+  customerId: string,
+  options?: RequestInit,
+): Promise<Headset[]> => {
+  return customFetch<Headset[]>(getListCustomerHeadsetsUrl(customerId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCustomerHeadsetsQueryKey = (customerId: string) => {
+  return [`/api/customers/${customerId}/headsets`] as const;
+};
+
+export const getListCustomerHeadsetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCustomerHeadsets>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: PartialQueryOptions<
+      Awaited<ReturnType<typeof listCustomerHeadsets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCustomerHeadsetsQueryKey(customerId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCustomerHeadsets>>
+  > = ({ signal }) =>
+    listCustomerHeadsets(customerId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!customerId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCustomerHeadsets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCustomerHeadsetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCustomerHeadsets>>
+>;
+export type ListCustomerHeadsetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all headsets for a specific customer
+ */
+
+export function useListCustomerHeadsets<
+  TData = Awaited<ReturnType<typeof listCustomerHeadsets>>,
+  TError = ErrorType<unknown>,
+>(
+  customerId: string,
+  options?: {
+    query?: PartialQueryOptions<
+      Awaited<ReturnType<typeof listCustomerHeadsets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCustomerHeadsetsQueryOptions(customerId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a headset (idempotent — returns existing record if already registered)
+ */
+export const getRegisterHeadsetUrl = () => {
+  return `/api/headsets/register`;
+};
+
+export const registerHeadset = async (
+  registerHeadsetBody: RegisterHeadsetBody,
+  options?: RequestInit,
+): Promise<Headset> => {
+  return customFetch<Headset>(getRegisterHeadsetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerHeadsetBody),
+  });
+};
+
+export const getRegisterHeadsetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerHeadset>>,
+    TError,
+    { data: BodyType<RegisterHeadsetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerHeadset>>,
+  TError,
+  { data: BodyType<RegisterHeadsetBody> },
+  TContext
+> => {
+  const mutationKey = ["registerHeadset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerHeadset>>,
+    { data: BodyType<RegisterHeadsetBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerHeadset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterHeadsetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerHeadset>>
+>;
+export type RegisterHeadsetMutationBody = BodyType<RegisterHeadsetBody>;
+export type RegisterHeadsetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register a headset (idempotent — returns existing record if already registered)
+ */
+export const useRegisterHeadset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerHeadset>>,
+    TError,
+    { data: BodyType<RegisterHeadsetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerHeadset>>,
+  TError,
+  { data: BodyType<RegisterHeadsetBody> },
+  TContext
+> => {
+  return useMutation(getRegisterHeadsetMutationOptions(options));
+};
+
+/**
  * @summary List available headsets
  */
 export const getListHeadsetsUrl = (params?: ListHeadsetsParams) => {
@@ -2083,6 +2261,177 @@ export function useGetHeadset<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update a headset's label or firmware version
+ */
+export const getUpdateHeadsetUrl = (headsetId: string) => {
+  return `/api/headsets/${headsetId}`;
+};
+
+export const updateHeadset = async (
+  headsetId: string,
+  patchHeadsetBody: PatchHeadsetBody,
+  options?: RequestInit,
+): Promise<Headset> => {
+  return customFetch<Headset>(getUpdateHeadsetUrl(headsetId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(patchHeadsetBody),
+  });
+};
+
+export const getUpdateHeadsetMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateHeadset>>,
+    TError,
+    { headsetId: string; data: BodyType<PatchHeadsetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateHeadset>>,
+  TError,
+  { headsetId: string; data: BodyType<PatchHeadsetBody> },
+  TContext
+> => {
+  const mutationKey = ["updateHeadset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateHeadset>>,
+    { headsetId: string; data: BodyType<PatchHeadsetBody> }
+  > = (props) => {
+    const { headsetId, data } = props ?? {};
+
+    return updateHeadset(headsetId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateHeadsetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateHeadset>>
+>;
+export type UpdateHeadsetMutationBody = BodyType<PatchHeadsetBody>;
+export type UpdateHeadsetMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a headset's label or firmware version
+ */
+export const useUpdateHeadset = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateHeadset>>,
+    TError,
+    { headsetId: string; data: BodyType<PatchHeadsetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateHeadset>>,
+  TError,
+  { headsetId: string; data: BodyType<PatchHeadsetBody> },
+  TContext
+> => {
+  return useMutation(getUpdateHeadsetMutationOptions(options));
+};
+
+/**
+ * @summary Delete a headset
+ */
+export const getDeleteHeadsetUrl = (headsetId: string) => {
+  return `/api/headsets/${headsetId}`;
+};
+
+export const deleteHeadset = async (
+  headsetId: string,
+  options?: RequestInit,
+): Promise<DeleteHeadset200> => {
+  return customFetch<DeleteHeadset200>(getDeleteHeadsetUrl(headsetId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteHeadsetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteHeadset>>,
+    TError,
+    { headsetId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteHeadset>>,
+  TError,
+  { headsetId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteHeadset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteHeadset>>,
+    { headsetId: string }
+  > = (props) => {
+    const { headsetId } = props ?? {};
+
+    return deleteHeadset(headsetId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteHeadsetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteHeadset>>
+>;
+
+export type DeleteHeadsetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a headset
+ */
+export const useDeleteHeadset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteHeadset>>,
+    TError,
+    { headsetId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteHeadset>>,
+  TError,
+  { headsetId: string },
+  TContext
+> => {
+  return useMutation(getDeleteHeadsetMutationOptions(options));
+};
 
 /**
  * @summary Get startup sync data — called by Unity when the headset app launches

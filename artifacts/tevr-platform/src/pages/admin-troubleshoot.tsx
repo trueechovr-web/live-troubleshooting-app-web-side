@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useListHeadsets, useCreateSession, useGetCustomer } from "@workspace/api-client-react";
+import { useListCustomerHeadsets, useCreateSession, useGetCustomer } from "@workspace/api-client-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePortalMode } from "@/hooks/usePortalMode";
 
@@ -39,7 +39,7 @@ export default function AdminTroubleshoot() {
   const customer = useGetCustomer(customerId, { query: { enabled: !!customerId } });
   const [connecting, setConnecting] = useState<string | null>(null);
 
-  const headsets = useListHeadsets();
+  const headsets = useListCustomerHeadsets(customerId, { query: { enabled: !!customerId } });
   const createSession = useCreateSession();
 
   const availableHeadsets = headsets.data?.filter((h) => h.status === "online" || h.status === "busy") ?? [];

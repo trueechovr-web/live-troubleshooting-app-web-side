@@ -16,6 +16,7 @@ import AdminQrLocation from "@/pages/admin-qr-location";
 import AdminLocationSetup from "@/pages/admin-location-setup";
 import AdminTechSetup from "@/pages/admin-tech-setup";
 import AdminSessionHistory from "@/pages/admin-session-history";
+import AdminHeadsetManagement from "@/pages/admin-headset-management";
 import DebugHeadsetSimulator from "@/pages/debug-headset-simulator";
 import TechPortal from "@/pages/tech-portal";
 import TechSession from "@/pages/tech-session";
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/tevr/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
       <Route path="/tevr/:customerId/settings/tech-setup" component={AdminTechSetup} />
       <Route path="/tevr/:customerId/session-history" component={AdminSessionHistory} />
+      <Route path="/tevr/:customerId/headsets" component={AdminHeadsetManagement} />
 
       {/* Client Admin */}
       <Route path="/admin" component={ClientList} />
@@ -62,6 +64,7 @@ function Router() {
       <Route path="/admin/:customerId/settings/qr-dictionary/:locationId" component={AdminQrLocation} />
       <Route path="/admin/:customerId/settings/tech-setup" component={AdminTechSetup} />
       <Route path="/admin/:customerId/session-history" component={AdminSessionHistory} />
+      <Route path="/admin/:customerId/headsets" component={AdminHeadsetManagement} />
 
       {/* Field Tech */}
       <Route path="/tech" component={TechPortal} />

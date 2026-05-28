@@ -545,6 +545,51 @@ export const DeleteQrDictionaryEntryResponse = zod.object({
 });
 
 /**
+ * @summary List all headsets for a specific customer
+ */
+export const ListCustomerHeadsetsParams = zod.object({
+  customerId: zod.coerce.string(),
+});
+
+export const ListCustomerHeadsetsResponseItem = zod.object({
+  id: zod.string(),
+  serialNumber: zod.string(),
+  label: zod.string(),
+  customerId: zod.string(),
+  customerName: zod.string(),
+  status: zod.enum(["online", "offline", "busy"]),
+  batteryLevel: zod.number(),
+  firmwareVersion: zod.string(),
+  lastSeen: zod.string(),
+});
+export const ListCustomerHeadsetsResponse = zod.array(
+  ListCustomerHeadsetsResponseItem,
+);
+
+/**
+ * @summary Register a headset (idempotent — returns existing record if already registered)
+ */
+
+export const RegisterHeadsetBody = zod.object({
+  serialNumber: zod.string().min(1),
+  customerId: zod.string(),
+  firmwareVersion: zod.string().optional(),
+  label: zod.string().optional(),
+});
+
+export const RegisterHeadsetResponse = zod.object({
+  id: zod.string(),
+  serialNumber: zod.string(),
+  label: zod.string(),
+  customerId: zod.string(),
+  customerName: zod.string(),
+  status: zod.enum(["online", "offline", "busy"]),
+  batteryLevel: zod.number(),
+  firmwareVersion: zod.string(),
+  lastSeen: zod.string(),
+});
+
+/**
  * @summary List available headsets
  */
 export const ListHeadsetsQueryParams = zod.object({
@@ -581,6 +626,43 @@ export const GetHeadsetResponse = zod.object({
   batteryLevel: zod.number(),
   firmwareVersion: zod.string(),
   lastSeen: zod.string(),
+});
+
+/**
+ * @summary Update a headset's label or firmware version
+ */
+export const UpdateHeadsetParams = zod.object({
+  headsetId: zod.coerce.string(),
+});
+
+export const updateHeadsetBodyLabelMax = 100;
+
+export const UpdateHeadsetBody = zod.object({
+  label: zod.string().min(1).max(updateHeadsetBodyLabelMax).optional(),
+  firmwareVersion: zod.string().optional(),
+});
+
+export const UpdateHeadsetResponse = zod.object({
+  id: zod.string(),
+  serialNumber: zod.string(),
+  label: zod.string(),
+  customerId: zod.string(),
+  customerName: zod.string(),
+  status: zod.enum(["online", "offline", "busy"]),
+  batteryLevel: zod.number(),
+  firmwareVersion: zod.string(),
+  lastSeen: zod.string(),
+});
+
+/**
+ * @summary Delete a headset
+ */
+export const DeleteHeadsetParams = zod.object({
+  headsetId: zod.coerce.string(),
+});
+
+export const DeleteHeadsetResponse = zod.object({
+  ok: zod.boolean(),
 });
 
 /**
