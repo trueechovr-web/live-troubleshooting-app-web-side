@@ -1,0 +1,33 @@
+## The one number that decides everything: module size
+
+Detection success is governed by <b>how many camera pixels land on each module</b>. The practical rules:
+
+1. <b>Keep the payload SHORT so the version stays LOW.</b> Fewer modules = each module is physically bigger = far easier for the Quest passthrough cameras (which are lower-resolution than a phone). 
+   - This is why I had you put a short `token` in the QR JSON earlier — a long token can push the code from Version 3 up to Version 10+, shrinking every module and killing detection.
+   - Target <b>Version 1–4 (21–33 modules)</b> if at all possible.
+
+2. <b>Physical-size-to-distance rule of thumb: ~10:1.</b> A QR code can typically be read at a distance of roughly 10× its width. So if the user scans from ~1 meter, the code should be <b>≥ ~10 cm wide on the screen</b>. For Quest passthrough I'd be conservative and tell the dev to make it <b>as large as practical — fill a large portion of the screen.</b>
+
+3. <b>Each module should be at least ~3–5 screen pixels</b>, AND those should survive the camera. On a typical monitor that means a Version 2 (25×25) code at 10 cm is fine; a Version 20 code at the same physical size has modules too tiny to resolve.
+
+## Screen-specific rules (since it's displayed on a monitor, not printed)
+
+Because your QR is rendered on a computer screen for the headset to read, tell the Replit dev:
+
+- <b>Render at integer pixel multiples</b> — each module should be a whole number of screen pixels (e.g., 8px or 12px per module). This avoids anti-aliasing/blur smearing the module edges, which the camera then can't separate.
+- <b>No CSS scaling, blur, drop-shadows, or transforms</b> on the QR element. Serve it crisp at native size.
+- <b>Pure #000000 on pure #FFFFFF.</b> No brand colors, no gradient, no logo overlay.
+- <b>Disable any dark-mode inversion</b> for that element (inverted QR — white on black — is technically readable by some decoders but Meta's tracker strongly prefers dark-on-light).
+- <b>Full brightness, minimize glare</b> — glossy screens at an angle reflect light over the finder patterns.
+- <b>Static</b> — don't animate or fade it in while the user is trying to scan.
+
+## Concrete spec to hand to the Replit dev
+
+> "Generate the setup QR per ISO/IEC 18004:
+> - <b>Error correction level Q</b> (25% — robust against screen glare; use M if Q pushes the version too high)
+> - <b>Keep total payload short</b> so it stays <b>Version ≤ 4 (≤ 33×33 modules)</b>
+> - <b>Quiet zone: 4 modules minimum</b> of white margin on all sides
+> - <b>Render at an integer pixel-per-module</b> (e.g. 10px/module) — no scaling/blur/anti-aliasing
+> - <b>Pure black on pure white</b>, no logo, no rounded dots, 1:1 square
+> - Display it <b>large</b> (target the equivalent of ≥10 cm on screen so it reads from ~1 m)
+> - Payload = the JSON schema I gave you (`customerId`, `locationId`, `token`, `apiBaseUrl`, `roomCode`)"

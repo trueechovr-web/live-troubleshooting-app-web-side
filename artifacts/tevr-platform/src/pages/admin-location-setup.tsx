@@ -68,9 +68,13 @@ function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
         <div className="p-5 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
           <QRCodeSVG
             value={qrValue}
-            size={300}
-            level="M"
+            size={400}
+            level="Q"
             marginSize={4}
+            fgColor="#000000"
+            bgColor="#ffffff"
+            style={{ display: "block" }}
+            shapeRendering="crispEdges"
           />
         </div>
 
