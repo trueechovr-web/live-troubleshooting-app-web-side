@@ -34,12 +34,24 @@ interface QrOverlayProps {
 }
 
 function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
+  const [qrSize, setQrSize] = useState(() =>
+    Math.min(700, Math.max(200, window.innerHeight - 300), window.innerWidth - 80)
+  );
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+
+    const handleResize = () =>
+      setQrSize(Math.min(700, Math.max(200, window.innerHeight - 300), window.innerWidth - 80));
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [onClose]);
 
   return (
@@ -59,16 +71,16 @@ function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
         </svg>
       </button>
 
-      <div className="flex flex-col items-center gap-6 px-8">
+      <div className="flex flex-col items-center gap-4 px-8">
         <div className="text-center">
           <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Headset Setup</p>
           <h2 className="text-2xl font-bold text-gray-900">{locationName}</h2>
         </div>
 
-        <div className="p-5 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
+        <div className="p-3 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
           <QRCodeSVG
             value={qrValue}
-            size={700}
+            size={qrSize}
             level="M"
             marginSize={4}
             fgColor="#000000"
