@@ -1,0 +1,31 @@
+## Prompt for the Replit developer AI
+
+> <b>Task: Make the Quest Sign-In QR the smallest/least-dense payload possible by encoding ONLY a short setup code.</b>
+>
+> <b>Context:</b> The Meta Quest 3 headset reads a QR code off a laptop screen to provision itself. Dense QRs fail to scan on passthrough cameras, so the QR must carry the absolute minimum. The headset already stores the backend URL locally (with a default, editable on-device), so <b>do not put the URL, customerId, locationId, token, or any JSON in the QR.</b>
+>
+> <b>1. Generate a short setup code</b>
+> - When an admin opens a Location's setup/QR page, generate a short, unique, URL-safe <b>setup code</b>: <b>8 characters, uppercase A–Z + 2–9</b> (avoid ambiguous `0/O/1/I`). Example: `YT5A5XL3`.
+> - Store it server-side mapped to that location: `{ setupCode → { customerId, locationId, roomCode? } }`. Make it single-use or time-limited (e.g. expires in 24h or on first successful resolve) for security.
+>
+> <b>2. Encode the QR as PLAIN TEXT of just the code</b>
+> - The QR payload must be <b>exactly the raw code</b> (e.g. `YT5A5XL3`) — <b>no JSON, no braces, no quotes, no URL, no whitespace.</b> This yields the lowest-density QR (~version 1).
+> - Render it with <b>Error Correction Level L or M</b>, a <b>large quiet zone</b> (≥4 modules of white border), pure black-on-white, no logo/gradient, and display it <b>large</b> on screen.
+>
+> <b>3. Add the resolve endpoint</b>
+> - Implement <b>`GET /api/setup/{setupCode}`</b>. On a valid (non-expired) code, return JSON:
+>   ```json
+>   { "customerId": "cust-004", "locationId": "loc-xyz", "roomCode": "ABC123" }
+>   ```
+>   (`roomCode` optional.) `customerId` and `locationId` are <b>required</b> and must be non-empty.
+> - On invalid/expired code return HTTP 404/410 with a short JSON error message.
+> - This endpoint must accept the same headers the headset already sends: `Content-Type: application/json`, `X-Requested-With: XMLHttpRequest`, and optionally `Authorization: Bearer <token>`.
+>
+> <b>4. Keep existing endpoints unchanged</b>
+> - `POST /api/headsets/register`, `GET /api/headsets/{id}/startup-data`, and `GET|POST /api/locations/{id}/qr-codes` stay as-is. After resolving the setup code, the headset registers and boots through these normally.
+>
+> <b>5. Do NOT</b> embed the backend base URL in the QR. The host is configured on the device (default value, overridable via an on-headset field) and stays fixed. The QR's only job is to deliver the 8-character handshake code.
+>
+> <b>Deliverables:</b> (a) setup-code generation + storage tied to a location, (b) the plain-text 8-char QR on the admin page, (c) the `GET /api/setup/{setupCode}` resolve endpoint returning customerId/locationId(/roomCode), (d) expiry/single-use handling.
+
+If your backend can't serve a fixed/stable host, tell me the canonical base URL and I'll set it as the on-device default in `BackendConfig` so users never have to type it.

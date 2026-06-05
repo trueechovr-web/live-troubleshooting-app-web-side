@@ -148,8 +148,7 @@ export default function AdminLocationSetup() {
       });
       if (!resp.ok) throw new Error("Failed to generate setup code");
       const { code } = await resp.json() as { code: string };
-      const apiBaseUrl = window.location.origin + "/api";
-      const payload = JSON.stringify({ setupCode: code, apiBaseUrl });
+      const payload = code;
       try { localStorage.setItem(lsKey(locationId), "1"); } catch {}
       setGeneratedIds((prev) => new Set(prev).add(locationId));
       setQrPayload(payload);
