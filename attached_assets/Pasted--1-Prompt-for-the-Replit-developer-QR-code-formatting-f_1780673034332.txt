@@ -1,0 +1,14 @@
+## 1. Prompt for the Replit developer (QR code formatting for Quest 3)
+
+> <b>Goal:</b> The Meta Quest 3 QR tracker (MR Utility Kit) is struggling to read/track our Sign In QR code. It's likely too *dense* (too many modules/"dots" relative to its printed size) and/or missing enough quiet-zone whitespace. Please reformat the QR generation on the dashboard with the following constraints, optimized for <b>headset camera tracking</b> (not phone scanning):
+>
+> 1. <b>Minimize the encoded payload.</b> The denser the data, the higher the QR "version" (more modules), and the harder it is for the headset to lock on. Our payload is JSON with `customerId, locationId, token, apiBaseUrl, roomCode`. Please:
+>    - Use the <b>shortest possible values</b> (e.g. short-lived/compact token, shortened `apiBaseUrl`, no trailing whitespace, no pretty-print/indentation — minified JSON only).
+>    - If the token or URL is long, strongly consider encoding a <b>short opaque setup code</b> in the QR that the headset exchanges server-side for the full payload, instead of embedding everything. This keeps the QR low-density.
+> 2. <b>Use a low error-correction level (L or M).</b> Higher EC (Q/H) adds many extra modules. Level <b>M</b> is a good balance; use <b>L</b> if the payload is large.
+> 3. <b>Maximize the quiet zone (white border).</b> Render <b>at least 4 modules</b> of pure-white margin on all sides (more is better). Do not place the QR flush against other graphics or colored backgrounds.
+> 4. <b>High contrast, pure colors.</b> Pure <b>black (#000000) on pure white (#FFFFFF)</b>. No gradients, no logos/branding in the center, no colored or "fancy" modules, no rounded/dot module styles — use standard square modules.
+> 5. <b>Large module size / generous render size.</b> Render the QR large on screen and at high resolution so each module is big and crisp (avoid anti-aliasing blur). Aim for the smallest practical QR <b>version</b> (fewest modules) at the <b>largest practical physical size</b>. If printed, target a physically large code (the bigger each black square, the easier the headset tracks it from a comfortable distance).
+> 6. <b>Quiet display:</b> if shown on a monitor, avoid screen glare/reflection and keep brightness high.
+>
+> <b>Net effect we want:</b> fewer total modules + bigger modules + more white space = reliable detection and continuous tracking by the Quest 3.

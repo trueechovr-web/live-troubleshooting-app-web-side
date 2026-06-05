@@ -69,7 +69,7 @@ function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
           <QRCodeSVG
             value={qrValue}
             size={400}
-            level="Q"
+            level="M"
             marginSize={4}
             fgColor="#000000"
             bgColor="#ffffff"
@@ -123,16 +123,33 @@ export default function AdminLocationSetup() {
   });
 
   const [qrOverlay, setQrOverlay] = useState<{ locationId: string; locationName: string } | null>(null);
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [generatingQrId, setGeneratingQrId] = useState<string | null>(null);
 
-  const handleGenerateQr = useCallback((locationId: string, locationName: string) => {
+  const handleGenerateQr = useCallback(async (locationId: string, locationName: string) => {
+    setGeneratingQrId(locationId);
     try {
-      localStorage.setItem(lsKey(locationId), "1");
-    } catch {}
-    setGeneratedIds((prev) => new Set(prev).add(locationId));
-    setQrOverlay({ locationId, locationName });
-  }, []);
+      const apiBase = window.location.origin + "/api-server";
+      const resp = await fetch(`${apiBase}/api/headsets/setup-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, locationId }),
+      });
+      if (!resp.ok) throw new Error("Failed to generate setup code");
+      const { code } = await resp.json() as { code: string };
+      const payload = JSON.stringify({ setupCode: code, apiBaseUrl: apiBase });
+      try { localStorage.setItem(lsKey(locationId), "1"); } catch {}
+      setGeneratedIds((prev) => new Set(prev).add(locationId));
+      setQrPayload(payload);
+      setQrOverlay({ locationId, locationName });
+    } catch (err) {
+      console.error("[QR] Failed to generate setup code", err);
+    } finally {
+      setGeneratingQrId(null);
+    }
+  }, [customerId]);
 
-  const handleCloseQr = useCallback(() => setQrOverlay(null), []);
+  const handleCloseQr = useCallback(() => { setQrOverlay(null); setQrPayload(null); }, []);
 
   const handleAddLocation = async () => {
     if (!newLocName.trim() || !customerId) return;
@@ -175,14 +192,7 @@ export default function AdminLocationSetup() {
 
   const locations = locationsQuery.data ?? [];
 
-  const activeQrValue = qrOverlay
-    ? JSON.stringify({
-        customerId,
-        locationId: qrOverlay.locationId,
-        apiBaseUrl: window.location.origin + "/api-server",
-        token: (import.meta.env.VITE_HEADSET_PROVISION_TOKEN as string) || undefined,
-      })
-    : null;
+  const activeQrValue = qrOverlay ? qrPayload : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -335,18 +345,26 @@ export default function AdminLocationSetup() {
                         {/* Setup QR button */}
                         <button
                           onClick={() => handleGenerateQr(loc.id, loc.name)}
-                          className={`shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                          disabled={generatingQrId === loc.id}
+                          className={`shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-wait ${
                             hasGenerated
                               ? "border-teal-300 text-teal-700 bg-teal-50 hover:bg-teal-100 dark:border-teal-700 dark:text-teal-400 dark:bg-teal-950/40 dark:hover:bg-teal-950/70 focus:ring-teal-400"
                               : "border-border text-muted-foreground hover:text-foreground hover:bg-muted focus:ring-primary"
                           }`}
                           title={hasGenerated ? "See QR Code" : "Generate Setup QR"}
                         >
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                          </svg>
-                          {hasGenerated ? "See QR Code" : "Generate Setup QR"}
+                          {generatingQrId === loc.id ? (
+                            <svg width="12" height="12" className="animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                            </svg>
+                          )}
+                          {generatingQrId === loc.id ? "Generating…" : hasGenerated ? "See QR Code" : "Generate Setup QR"}
                         </button>
 
                         <button

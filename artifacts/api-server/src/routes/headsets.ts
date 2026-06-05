@@ -19,6 +19,57 @@ function requireProvisionToken(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
+/* ── In-memory setup code store (survives for 24 h, cleared on restart) ── */
+interface SetupCodeEntry { customerId: string; locationId: string; expiresAt: number; }
+const setupCodeStore = new Map<string, SetupCodeEntry>();
+const SETUP_CODE_TTL_MS = 24 * 60 * 60 * 1000;
+const SETUP_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 unambiguous chars
+
+function makeSetupCode(): string {
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += SETUP_CODE_CHARS[Math.floor(Math.random() * SETUP_CODE_CHARS.length)];
+  }
+  return code;
+}
+
+// Hourly sweep for expired codes
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, entry] of setupCodeStore) {
+    if (entry.expiresAt < now) setupCodeStore.delete(code);
+  }
+}, 60 * 60 * 1000).unref();
+
+/* ── POST /headsets/setup-code ── */
+// Called from the admin portal browser when generating a setup QR.
+// Returns a short opaque code the headset exchanges for the full config.
+router.post("/headsets/setup-code", async (req, res) => {
+  const { customerId, locationId } = req.body as { customerId?: string; locationId?: string };
+  if (!customerId || !locationId) {
+    res.status(400).json({ error: "customerId and locationId are required" });
+    return;
+  }
+  const code = makeSetupCode();
+  setupCodeStore.set(code, { customerId, locationId, expiresAt: Date.now() + SETUP_CODE_TTL_MS });
+  res.json({ code, expiresAt: new Date(Date.now() + SETUP_CODE_TTL_MS).toISOString() });
+});
+
+/* ── GET /headsets/setup-exchange?code=XXXXXXXX ── */
+// Called by the headset after scanning the QR. One-time use — code deleted on success.
+router.get("/headsets/setup-exchange", (req, res) => {
+  const { code } = req.query as { code?: string };
+  if (!code) { res.status(400).json({ error: "code is required" }); return; }
+  const entry = setupCodeStore.get(code);
+  if (!entry) { res.status(404).json({ error: "Setup code not found or expired" }); return; }
+  if (entry.expiresAt < Date.now()) {
+    setupCodeStore.delete(code);
+    res.status(410).json({ error: "Setup code has expired" }); return;
+  }
+  setupCodeStore.delete(code); // one-time use
+  res.json({ customerId: entry.customerId, locationId: entry.locationId, token: PROVISION_TOKEN ?? null });
+});
+
 /* ── POST /headsets/register ── */
 router.post("/headsets/register", requireProvisionToken, async (req, res) => {
   try {
