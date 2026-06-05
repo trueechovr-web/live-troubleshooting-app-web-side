@@ -70,7 +70,7 @@ function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
             value={qrValue}
             size={400}
             level="M"
-            marginSize={4}
+            marginSize={12}
             fgColor="#000000"
             bgColor="#ffffff"
             style={{ display: "block" }}
