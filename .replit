@@ -41,3 +41,9 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+VITE_HEADSET_PROVISION_TOKEN = "a2e9224e7fd144879255be7e66417892"
+HEADSET_PROVISION_TOKEN = "a2e9224e7fd144879255be7e66417892"

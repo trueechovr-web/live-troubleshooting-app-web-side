@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
 import { headsetsTable, customersTable, locationsTable, qrCodesTable, qrDictionaryTable, locationQrCodeSettingsTable, sessionsTable, messagesTable, pointToEventsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -6,8 +6,21 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
+const PROVISION_TOKEN = process.env.HEADSET_PROVISION_TOKEN;
+
+function requireProvisionToken(req: Request, res: Response, next: NextFunction) {
+  if (!PROVISION_TOKEN) { next(); return; }
+  const auth = req.headers["authorization"] ?? "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (bearer !== PROVISION_TOKEN) {
+    res.status(401).json({ error: "Invalid or missing provisioning token" });
+    return;
+  }
+  next();
+}
+
 /* ── POST /headsets/register ── */
-router.post("/headsets/register", async (req, res) => {
+router.post("/headsets/register", requireProvisionToken, async (req, res) => {
   try {
     const { serialNumber, customerId, firmwareVersion, label } = req.body as {
       serialNumber?: string;
@@ -194,7 +207,7 @@ router.delete("/headsets/:headsetId", async (req, res) => {
 });
 
 /* ── GET /headsets/:headsetId/startup-data?locationId=... ── */
-router.get("/headsets/:headsetId/startup-data", async (req, res) => {
+router.get("/headsets/:headsetId/startup-data", requireProvisionToken, async (req, res) => {
   try {
     const { locationId } = req.query as { locationId?: string };
     if (!locationId) {

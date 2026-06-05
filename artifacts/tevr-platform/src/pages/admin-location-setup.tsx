@@ -68,9 +68,9 @@ function QrOverlay({ locationName, qrValue, onClose }: QrOverlayProps) {
         <div className="p-5 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
           <QRCodeSVG
             value={qrValue}
-            size={280}
+            size={300}
             level="M"
-            includeMargin={false}
+            marginSize={4}
           />
         </div>
 
@@ -172,7 +172,12 @@ export default function AdminLocationSetup() {
   const locations = locationsQuery.data ?? [];
 
   const activeQrValue = qrOverlay
-    ? JSON.stringify({ customerId, locationId: qrOverlay.locationId })
+    ? JSON.stringify({
+        customerId,
+        locationId: qrOverlay.locationId,
+        apiBaseUrl: window.location.origin + "/api-server",
+        token: (import.meta.env.VITE_HEADSET_PROVISION_TOKEN as string) || undefined,
+      })
     : null;
 
   return (

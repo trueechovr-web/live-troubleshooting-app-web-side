@@ -1,0 +1,41 @@
+## 📡 What to tell your Replit developer
+
+Your two suspicions are both partly right. Here is what to convey.
+
+### A. QR code drawing rules (for reliable Quest 3 detection)
+
+The Quest 3 / MRUK QR detector wants a <b>clean, high‑contrast, physically reasonable</b> code:
+
+1. <b>Quiet zone</b>: leave a blank margin of at least <b>4 modules</b> (4 "dots" wide) around the whole code. Cramming the code to the edge of a panel is the #1 cause of missed detection.
+2. <b>Contrast & color</b>: pure <b>black on pure white</b>. No gradients, no colored/branded QR, no logo in the middle, no rounded "fancy" dots.
+3. <b>On‑screen size</b>: the code should render <b>large</b> — aim for it filling a good portion of the screen so that at ~0.5–1 m the code is at least <b>~8–10 cm</b> physically on the monitor. Tiny codes in a corner won't resolve.
+4. <b>Error correction level</b>: use <b>Level M or Q</b> (not L). More redundancy = more forgiving of screen glare/angle.
+5. <b>Static & sharp</b>: no animation, no scaling transitions while displayed; render at native resolution (avoid CSS blur/anti‑aliasing that softens module edges). Avoid displaying it on a glossy screen at a steep angle.
+6. <b>Version/density</b>: keep the payload short so the QR stays low‑version (fewer, larger modules). See the auth note below — short tokens help.
+
+### B. Is the site private / does it need a session in the QR? — Yes, likely
+
+Right now the headset registers via `POST /api/headsets/register` and the backend enforces an AJAX/CSRF guard (`X-Requested-With: XMLHttpRequest`). If the backend also requires an authenticated session/bearer token, an un‑logged‑in headset will be rejected — which matches the "communication breaking" symptom.
+
+<b>Good news: the Unity side is already built to receive auth data from the QR.</b> The headset parses this exact JSON schema from the Login/Setup QR (`SessionUiController.SetupQR`), and applies each field automatically:
+
+```json
+{
+  "customerId": "REQUIRED-customer-id",
+  "locationId": "REQUIRED-location-id",
+  "token": "optional-bearer-or-session-token",
+  "apiBaseUrl": "https://your-app.replit.app",
+  "roomCode": "optional-room-to-auto-join"
+}
+```
+
+What the headset does with each field (already implemented):
+- `customerId` / `locationId` — <b>required</b>; saved and used for registration + startup-data.
+- `token` — sent on <b>every</b> REST call as `Authorization: Bearer <token>`. This is the piece that lets a not‑yet‑logged‑in headset authenticate against a private backend.
+- `apiBaseUrl` — overrides the host per device (your Replit → AWS migration works with <b>no app rebuild</b>).
+- `roomCode` — pre‑fills the session room.
+
+<b>So tell the Replit dev:</b>
+> "Generate the Locations‑page setup QR as a JSON string with the fields above (black‑on‑white, big, with a quiet zone, error‑correction M/Q). Include a short‑lived `token` that authorizes a headset to call `/api/headsets/register` and `/api/headsets/{id}/startup-data` without an interactive login, plus `apiBaseUrl`. Keep the token short to keep the QR low‑density."
+
+If they confirm the exact header/format the backend expects for the token (e.g. `Authorization: Bearer` vs a custom header, or a `?token=` query param), tell me and I'll match it precisely — currently the headset sends it as a standard `Authorization: Bearer` header.
