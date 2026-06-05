@@ -70,6 +70,21 @@ router.get("/headsets/setup-exchange", (req, res) => {
   res.json({ customerId: entry.customerId, locationId: entry.locationId, token: PROVISION_TOKEN ?? null });
 });
 
+/* ── GET /setup/:code ── */
+// Unity headset path: GET {apiBaseUrl}/setup/{setupCode}
+// Alias for the setup-exchange endpoint — same one-time exchange logic.
+router.get("/setup/:code", (req, res) => {
+  const { code } = req.params;
+  const entry = setupCodeStore.get(code);
+  if (!entry) { res.status(404).json({ error: "Setup code not found or expired" }); return; }
+  if (entry.expiresAt < Date.now()) {
+    setupCodeStore.delete(code);
+    res.status(410).json({ error: "Setup code has expired" }); return;
+  }
+  setupCodeStore.delete(code); // one-time use
+  res.json({ customerId: entry.customerId, locationId: entry.locationId, token: PROVISION_TOKEN ?? null });
+});
+
 /* ── POST /headsets/register ── */
 router.post("/headsets/register", requireProvisionToken, async (req, res) => {
   try {
