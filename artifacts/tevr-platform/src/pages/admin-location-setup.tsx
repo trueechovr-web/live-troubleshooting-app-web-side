@@ -129,15 +129,15 @@ export default function AdminLocationSetup() {
   const handleGenerateQr = useCallback(async (locationId: string, locationName: string) => {
     setGeneratingQrId(locationId);
     try {
-      const apiBase = window.location.origin + "/api-server";
-      const resp = await fetch(`${apiBase}/api/headsets/setup-code`, {
+      const resp = await fetch("/api/headsets/setup-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerId, locationId }),
       });
       if (!resp.ok) throw new Error("Failed to generate setup code");
       const { code } = await resp.json() as { code: string };
-      const payload = JSON.stringify({ setupCode: code, apiBaseUrl: apiBase });
+      const apiBaseUrl = window.location.origin + "/api";
+      const payload = JSON.stringify({ setupCode: code, apiBaseUrl });
       try { localStorage.setItem(lsKey(locationId), "1"); } catch {}
       setGeneratedIds((prev) => new Set(prev).add(locationId));
       setQrPayload(payload);
