@@ -90,6 +90,26 @@ export function setupSocketIO(httpServer: HttpServer) {
         .catch((err) => logger.error({ err }, "Failed to process battery update"));
     });
 
+    // Unity sends health-update (with headsetId in payload) every 60 s instead of battery-update
+    socket.on("health-update", ({ roomCode, batteryLevel, headsetId, calibrated }: {
+      roomCode: string;
+      batteryLevel: number;
+      headsetId: string;
+      locationId?: string;
+      calibrated?: boolean;
+      timestamp?: string;
+    }) => {
+      if (!headsetId) return;
+      if (typeof batteryLevel !== "number" || batteryLevel < 0 || batteryLevel > 100) return;
+      db.update(headsetsTable)
+        .set({ batteryLevel, lastSeen: new Date() })
+        .where(eq(headsetsTable.id, headsetId))
+        .then(() => {
+          socket.to(roomCode).emit("battery-update", { batteryLevel, calibrated });
+        })
+        .catch((err) => logger.error({ err }, "Failed to process health-update"));
+    });
+
     socket.on("point-to", ({ roomCode, objectName }: { roomCode: string; objectName: string }) => {
       const peers = rooms.get(roomCode) ?? [];
       const headset = peers.find((p) => p.role === "headset");

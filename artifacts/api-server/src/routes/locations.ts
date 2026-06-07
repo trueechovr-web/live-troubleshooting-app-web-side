@@ -279,6 +279,7 @@ router.get("/locations/:locationId/qr-codes", async (req, res) => {
     );
 
     res.json({
+      headsetId: latest.headset ?? undefined,
       locationId: loc.id,
       locationName: loc.name,
       qrCodes: qrCodes.map((r) => ({
@@ -292,6 +293,8 @@ router.get("/locations/:locationId/qr-codes", async (req, res) => {
         rotY: r.rotY,
         rotZ: r.rotZ,
         rotW: r.rotW,
+        position: { x: r.posX, y: r.posY, z: r.posZ },
+        rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
         calibratedAt: r.calibratedAt.toISOString(),
         ...(r.headsetId != null ? { headsetId: r.headsetId } : {}),
       })),
@@ -365,6 +368,49 @@ router.put("/locations/:locationId/qr-codes", async (req, res) => {
       lastCalibratedAt: qrCodes.length > 0 ? now.toISOString() : undefined,
       lastCalibratedByHeadsetId: headsetId ?? undefined,
     });
+  } catch {
+    res.status(500).json({ error: "Failed to import QR codes" });
+  }
+});
+
+/* ── POST /locations/:locationId/qr-codes (Unity CalibrationUpload — same logic as PUT) ── */
+router.post("/locations/:locationId/qr-codes", async (req, res) => {
+  try {
+    const parsed = ImportLocationQrCodesBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+
+    const [loc] = await db
+      .select()
+      .from(locationsTable)
+      .where(eq(locationsTable.id, req.params.locationId));
+    if (!loc) { res.status(404).json({ error: "Location not found" }); return; }
+
+    const { headsetId, qrCodes } = parsed.data;
+    const now = new Date();
+
+    await db.transaction(async (tx) => {
+      await tx.delete(qrCodesTable).where(eq(qrCodesTable.locationId, req.params.locationId));
+      if (qrCodes.length > 0) {
+        await tx.insert(qrCodesTable).values(
+          qrCodes.map((qr) => ({
+            id: randomUUID(),
+            locationId: req.params.locationId,
+            qrValue: qr.qrValue,
+            posX: qr.position.x,
+            posY: qr.position.y,
+            posZ: qr.position.z,
+            rotX: qr.rotation.x,
+            rotY: qr.rotation.y,
+            rotZ: qr.rotation.z,
+            rotW: qr.rotation.w,
+            calibratedAt: now,
+            headsetId: headsetId ?? null,
+          })),
+        );
+      }
+    });
+
+    res.json({ ok: true, locationId: loc.id, count: qrCodes.length });
   } catch {
     res.status(500).json({ error: "Failed to import QR codes" });
   }

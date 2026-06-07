@@ -324,15 +324,12 @@ router.get("/headsets/:headsetId/startup-data", requireProvisionToken, async (re
     res.json({
       locationId: location.id,
       locationName: location.name,
-      qrCodes: enabledQrCodes.map((r) => {
-        const name = nameMap.get(r.qrValue);
-        return {
-          qrValue: r.qrValue,
-          ...(name != null ? { name } : {}),
-          position: { x: r.posX, y: r.posY, z: r.posZ },
-          rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
-        };
-      }),
+      qrCodes: enabledQrCodes.map((r) => ({
+        qrValue: r.qrValue,
+        name: nameMap.get(r.qrValue) ?? "",
+        position: { x: r.posX, y: r.posY, z: r.posZ },
+        rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
+      })),
       nameDictionary: dictionary.map((d) => ({ qrValue: d.qrValue, name: d.name })),
     });
   } catch (err) {
