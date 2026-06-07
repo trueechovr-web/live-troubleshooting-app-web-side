@@ -144,6 +144,7 @@ export function setupSocketIO(httpServer: HttpServer) {
 
       db.select({
         qrValue: qrCodesTable.qrValue,
+        name: qrDictionaryTable.name,
         posX: qrCodesTable.posX,
         posY: qrCodesTable.posY,
         posZ: qrCodesTable.posZ,
@@ -157,15 +158,15 @@ export function setupSocketIO(httpServer: HttpServer) {
         .where(
           and(
             eq(qrCodesTable.locationId, locationId),
-            eq(qrDictionaryTable.name, objectName),
+            eq(qrDictionaryTable.qrValue, objectName),
           )
         )
         .limit(1)
         .then(([row]) => {
           if (row) {
             socket.to(roomCode).emit("point-to", {
-              name: objectName,
               qrCode: row.qrValue,
+              name: row.name,
               pose: {
                 position: { x: row.posX, y: row.posY, z: row.posZ },
                 rotation: { x: row.rotX, y: row.rotY, z: row.rotZ, w: row.rotW },
