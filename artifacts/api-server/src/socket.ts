@@ -90,22 +90,30 @@ export function setupSocketIO(httpServer: HttpServer) {
         .catch((err) => logger.error({ err }, "Failed to process battery update"));
     });
 
-    // Unity sends health-update (with headsetId in payload) every 60 s instead of battery-update
-    socket.on("health-update", ({ roomCode, batteryLevel, headsetId, calibrated }: {
+    // Unity sends health-update every 60 s — resolve headsetId from session (not payload) for security
+    socket.on("health-update", ({ roomCode, batteryLevel, calibrated }: {
       roomCode: string;
       batteryLevel: number;
-      headsetId: string;
+      headsetId?: string;
       locationId?: string;
       calibrated?: boolean;
       timestamp?: string;
     }) => {
-      if (!headsetId) return;
       if (typeof batteryLevel !== "number" || batteryLevel < 0 || batteryLevel > 100) return;
-      db.update(headsetsTable)
-        .set({ batteryLevel, lastSeen: new Date() })
-        .where(eq(headsetsTable.id, headsetId))
-        .then(() => {
-          socket.to(roomCode).emit("battery-update", { batteryLevel, calibrated });
+      const peers = rooms.get(roomCode) ?? [];
+      const sender = peers.find((p) => p.socketId === socket.id);
+      if (!sender || sender.role !== "headset") return;
+      db.select({ headsetId: sessionsTable.headsetId })
+        .from(sessionsTable)
+        .where(eq(sessionsTable.roomCode, roomCode))
+        .then(([session]) => {
+          if (!session) return;
+          return db.update(headsetsTable)
+            .set({ batteryLevel, lastSeen: new Date() })
+            .where(eq(headsetsTable.id, session.headsetId))
+            .then(() => {
+              socket.to(roomCode).emit("battery-update", { batteryLevel, calibrated });
+            });
         })
         .catch((err) => logger.error({ err }, "Failed to process health-update"));
     });

@@ -280,26 +280,11 @@ router.get("/locations/:locationId/qr-codes", async (req, res) => {
 
     res.json({
       headsetId: latest.headset ?? undefined,
-      locationId: loc.id,
-      locationName: loc.name,
       qrCodes: qrCodes.map((r) => ({
-        id: r.id,
-        locationId: r.locationId,
         qrValue: r.qrValue,
-        posX: r.posX,
-        posY: r.posY,
-        posZ: r.posZ,
-        rotX: r.rotX,
-        rotY: r.rotY,
-        rotZ: r.rotZ,
-        rotW: r.rotW,
         position: { x: r.posX, y: r.posY, z: r.posZ },
         rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
-        calibratedAt: r.calibratedAt.toISOString(),
-        ...(r.headsetId != null ? { headsetId: r.headsetId } : {}),
       })),
-      lastCalibratedAt: latest.at ? latest.at.toISOString() : undefined,
-      lastCalibratedByHeadsetId: latest.headset ?? undefined,
     });
   } catch {
     res.status(500).json({ error: "Failed to fetch QR codes" });
