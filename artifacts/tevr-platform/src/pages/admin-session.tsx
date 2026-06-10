@@ -289,7 +289,7 @@ export default function AdminSession() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 overflow-hidden relative">
           <div className="relative flex-1 bg-black flex items-center justify-center min-h-0">
-            <video ref={remoteVideoRef} data-testid="remote-video" autoPlay playsInline muted={false} className="w-full h-full object-contain" />
+            <video ref={remoteVideoRef} data-testid="remote-video" autoPlay playsInline muted={false} className="h-full w-auto max-w-full" />
             {!isConnected && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                 <div className="w-14 h-14 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center">

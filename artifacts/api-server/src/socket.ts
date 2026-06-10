@@ -184,6 +184,24 @@ export function setupSocketIO(httpServer: HttpServer) {
         });
     });
 
+    socket.on("qr-detected", (payload: {
+      roomCode: string;
+      locationId: string;
+      headsetId: string;
+      qrValue: string;
+      name: string;
+      listed: boolean;
+      isRoomAnchor: boolean;
+      position: { x: number; y: number; z: number };
+      rotation: { x: number; y: number; z: number; w: number };
+      timestamp: string;
+    }) => {
+      const { roomCode, qrValue, isRoomAnchor } = payload;
+      if (!roomCode || !qrValue) return;
+      socket.to(roomCode).emit("qr-detected", payload);
+      logger.debug({ roomCode, qrValue, isRoomAnchor }, "qr-detected relayed to room");
+    });
+
     socket.on("disconnect", () => {
       logger.info({ socketId: socket.id }, "Socket disconnected");
       rooms.forEach((peers, roomCode) => {

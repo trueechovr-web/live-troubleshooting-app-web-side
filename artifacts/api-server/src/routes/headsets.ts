@@ -324,11 +324,13 @@ router.get("/headsets/:headsetId/startup-data", requireProvisionToken, async (re
     res.json({
       locationId: location.id,
       locationName: location.name,
+      version: "1.0",
       qrCodes: enabledQrCodes.map((r) => ({
         qrValue: r.qrValue,
         name: nameMap.get(r.qrValue) ?? "",
         position: { x: r.posX, y: r.posY, z: r.posZ },
         rotation: { x: r.rotX, y: r.rotY, z: r.rotZ, w: r.rotW },
+        metadata: "",
       })),
       nameDictionary: dictionary.map((d) => ({ qrValue: d.qrValue, name: d.name })),
     });

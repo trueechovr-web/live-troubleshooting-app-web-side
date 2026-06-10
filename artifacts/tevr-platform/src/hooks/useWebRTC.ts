@@ -135,7 +135,7 @@ export function useWebRTC({ roomCode, role, remoteVideoRef, localVideoRef }: Use
         try {
           const offer = await peerConnectionRef.current!.createOffer();
           await peerConnectionRef.current!.setLocalDescription(offer);
-          socket.emit("offer", { roomCode, offer });
+          socket.emit("offer", { roomCode, offer, targetRole: "headset" });
         } catch (err) {
           console.error("Error creating offer", err);
         }

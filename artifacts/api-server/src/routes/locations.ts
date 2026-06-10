@@ -358,7 +358,7 @@ router.put("/locations/:locationId/qr-codes", async (req, res) => {
   }
 });
 
-/* ── POST /locations/:locationId/qr-codes (Unity CalibrationUpload — same logic as PUT) ── */
+/* ── POST /locations/:locationId/qr-codes (Unity CalibrationUpload — upsert by qrValue) ── */
 router.post("/locations/:locationId/qr-codes", async (req, res) => {
   try {
     const parsed = ImportLocationQrCodesBody.safeParse(req.body);
@@ -374,8 +374,14 @@ router.post("/locations/:locationId/qr-codes", async (req, res) => {
     const now = new Date();
 
     await db.transaction(async (tx) => {
-      await tx.delete(qrCodesTable).where(eq(qrCodesTable.locationId, req.params.locationId));
       if (qrCodes.length > 0) {
+        const qrValues = qrCodes.map((qr) => qr.qrValue);
+        await tx.delete(qrCodesTable).where(
+          and(
+            eq(qrCodesTable.locationId, req.params.locationId),
+            inArray(qrCodesTable.qrValue, qrValues),
+          ),
+        );
         await tx.insert(qrCodesTable).values(
           qrCodes.map((qr) => ({
             id: randomUUID(),
